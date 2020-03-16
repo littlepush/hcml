@@ -1,0 +1,44 @@
+<!--
+if ( req.cookie.contains("__token__") ) {
+    std::string _t = req.cookie.get_cookie_value("__token__");
+    if ( _t.size() > 0 ) {
+        resp.status_code = CODE_302;
+        resp.header["Location"] = "/index.html";
+        return;
+    }
+}
+-->
+<cxx:string>xxx</cxx:string>    <!-- "xxx" -->
+<cxx:const>xxx</cxx:const>      <!-- xxx -->
+
+<!-- req.cookie.contains("__token__") -->
+<cxx:var name="req.cookie">
+    <cxx:invoke name="contains">
+        <cxx:string>__token__</cxx:string>
+    </cxx:invoke>
+</cxx:var>
+
+<cxx:condition>
+    <cxx:case>
+        <cxx:code>req.cookie.contains("__token__")</cxx:code>
+        <cxx:code>std::string _t = req.cookie.get_cookie_value("__token__")</cxx:code>
+        <cxx:condition>
+            <cxx:great>
+                <cxx:var name="_t"><cxx:invoke name="size"></cxx:invoke></cxx:var>
+                <cxx:const>0</cxx:const>
+            </cxx:great>
+            <cxx:set>
+                <cxx:var name="resp.status_code"></cxx:var>
+                <cxx:const>CODE_302</cxx:const>
+            </cxx:set>
+            <cxx:set>
+                <cxx:var name="resp.header">
+                    <cxx:subscript><cxx:string>Location</cxx:string></cxx:subscript>
+                </cxx:var>
+                <cxx:string>/index.html</cxx:string>
+            </cxx:set>
+            <cxx:return></cxx:return>
+        </cxx:condition>
+    </cxx:case>
+    <cxx:else>Yes</cxx:else>
+</cxx:condition>

@@ -74,3 +74,5 @@ libtool
 .libs
 bin
 hcmlt
+.vs
+debug

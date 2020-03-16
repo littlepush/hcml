@@ -1,0 +1,142 @@
+<cxx:condition>
+    <cxx:true>
+        <cxx:var name="req">
+            <cxx:var name="cookie">
+                <cxx:method name="contains">
+                    <cxx:string>__token__</cxx:string>
+                </cxx:method>
+            </cxx:var>
+        </cxx:var>
+    </cxx:true>
+    <cxx:block>
+        <cxx:set>
+            <cxx:var name="_t" type="std::string"></cxx:var>
+            <cxx:var name="req">
+                <cxx:var name="cookie">
+                    <cxx:method name="get_cookie_value">
+                        <cxx:string>__token__</cxx:string>
+                    </cxx:method>
+                </cxx:var>
+            </cxx:var>
+        </cxx:set>
+        <cxx:condition>
+            <cxx:true>
+                <cxx:great>
+                    <cxx:var name="_t">
+                        <cxx:method name="size"></cxx:method>
+                    </cxx:var>
+                    <cxx:const>0</cxx:const>
+                </cxx:great>
+            </cxx:true>
+            <cxx:block>
+                <cxx:set>
+                    <cxx:var name="resp">
+                        <cxx:var name="status_code"></cxx:var>
+                    </cxx:var>
+                    <cxx:const>CODE_302</cxx:const>
+                </cxx:set>
+                <cxx:set>
+                    <cxx:var name="resp">
+                        <cxx:subscript name="header">
+                            <cxx:string>Location</cxx:string>
+                        </cxx:subscript>
+                    </cxx:var>
+                    <cxx:string>/index.html</cxx:string>
+                </cxx:set>
+                <cxx:return></cxx:return>
+            </cxx:block>
+        </cxx:condition>
+    </cxx:block>
+</cxx:condition>
+<html lang="en">
+    <head>
+        <!-- Required meta tags -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <link 
+            rel="stylesheet" 
+            href="_static/css/bootstrap.min.css"/>
+        <script src="_static/js/ba08a15b99.js"></script>
+        <title>
+            <cxx:print>
+                <cxx:plus>
+                    <cxx:var name="g_sitename"></cxx:var>
+                    <cxx:string> - 登录</cxx:string>
+                </cxx:plus>
+            </cxx:print>
+        </title>
+    </head>
+    <body class="bg-dark">
+        <div class="wrapper bg-gray">
+            <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+              <a class="navbar-brand" href="#">CMS</a>
+              <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+              </button>
+            </nav>
+            <div class="container-fluid bg-gray">
+              <div class="wrapper wrapper-content bg-gray">
+                <div class="jumbotron jumbotron-fluid row">
+                  <div class="container">
+                    <h2 class="display-4">登录后台CMS管理系统</h2>
+                    <hr class="my-4" />
+                    <form>
+                      <div class="form-group col-lg-3 col-md-6 col-sm-12">
+                        <label for="username">用户名</label> 
+                        <input type="text" class="form-control" id="username" aria-describedby="usernameHelp" placeholder="Enter username"/> 
+                        <small id="usernameHelp" class="form-text text-muted">请联系管理员获取后台登录账号.</small>
+                      </div>
+                      <div class="form-group col-lg-3 col-md-6 col-sm-12">
+                        <label for="password">密码</label> 
+                        <input type="password" class="form-control" id="password" placeholder="Password" />
+                      </div>
+                      <div class="form-group col-lg-3 col-md-6 col-sm-12">
+                        <button id="loginbtn" type="submit" class="btn btn-primary">登录</button>
+                      </div>
+                      <div class="alert alert-danger collapse" role="alert">
+                        登录失败: <span id="login_failed_msg"></span>
+                          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                          </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <cxx:var name="resp">
+                <cxx:var name="body">
+                    <cxx:method name="load_file">
+                        <cxx:string>_static/parts/footer.part</cxx:string>
+                    </cxx:method>
+                </cxx:var>
+            </cxx:var>
+        </div>
+    </body>
+
+    <script src="_static/js/jquery-3.4.1.min.js"></script>
+    <script src="_static/js/popper.min.js"></script>
+    <script src="_static/js/bootstrap.min.js"></script>
+    <script src="_static/js/utils.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            $(".jumbotron").attr("style", "margin-bottom: 0px !important");
+            $("#loginbtn").on('click', function(e) {
+                e.preventDefault();
+                $.post( 
+                    "/api/login", 
+                    {username: $("#username").val(), password: $("#password").val()},
+                    function(data) {
+                        if ( data.code != 0 ) {
+                            $("#login_failed_msg").text(data.msg);
+                            $(".alert").show();
+                        } else {
+                            window.location.href = "/index.html";
+                        }
+                    }
+                );
+            });
+        });
+    </script>
+</html>    
