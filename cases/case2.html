@@ -1,52 +1,26 @@
 <cxx:condition>
-    <cxx:true>
-        <cxx:var name="req">
-            <cxx:var name="cookie">
-                <cxx:method name="contains">
-                    <cxx:string>__token__</cxx:string>
-                </cxx:method>
-            </cxx:var>
-        </cxx:var>
-    </cxx:true>
-    <cxx:block>
-        <cxx:set>
-            <cxx:var name="_t" type="std::string"></cxx:var>
-            <cxx:var name="req">
-                <cxx:var name="cookie">
-                    <cxx:method name="get_cookie_value">
-                        <cxx:string>__token__</cxx:string>
-                    </cxx:method>
-                </cxx:var>
-            </cxx:var>
-        </cxx:set>
+    <cxx:case>
+        <cxx:code>req.cookie.contains("__token__")</cxx:code>
+        <cxx:code>std::string _t = req.cookie.get_cookie_value("__token__")</cxx:code>
         <cxx:condition>
-            <cxx:true>
-                <cxx:great>
-                    <cxx:var name="_t">
-                        <cxx:method name="size"></cxx:method>
-                    </cxx:var>
-                    <cxx:const>0</cxx:const>
-                </cxx:great>
-            </cxx:true>
-            <cxx:block>
-                <cxx:set>
-                    <cxx:var name="resp">
-                        <cxx:var name="status_code"></cxx:var>
-                    </cxx:var>
-                    <cxx:const>CODE_302</cxx:const>
-                </cxx:set>
-                <cxx:set>
-                    <cxx:var name="resp">
-                        <cxx:subscript name="header">
-                            <cxx:string>Location</cxx:string>
-                        </cxx:subscript>
-                    </cxx:var>
-                    <cxx:string>/index.html</cxx:string>
-                </cxx:set>
-                <cxx:return></cxx:return>
-            </cxx:block>
+            <cxx:great>
+                <cxx:var name="_t"><cxx:invoke name="size"></cxx:invoke></cxx:var>
+                <cxx:const>0</cxx:const>
+            </cxx:great>
+            <cxx:set>
+                <cxx:var name="resp.status_code"></cxx:var>
+                <cxx:const>CODE_302</cxx:const>
+            </cxx:set>
+            <cxx:set>
+                <cxx:var name="resp.header">
+                    <cxx:subscript><cxx:string>Location</cxx:string></cxx:subscript>
+                </cxx:var>
+                <cxx:string>/index.html</cxx:string>
+            </cxx:set>
+            <cxx:return></cxx:return>
         </cxx:condition>
-    </cxx:block>
+    </cxx:case>
+    <cxx:else>Yes</cxx:else>
 </cxx:condition>
 <html lang="en">
     <head>
@@ -104,12 +78,10 @@
                 </div>
               </div>
             </div>
-            <cxx:var name="resp">
-                <cxx:var name="body">
-                    <cxx:method name="load_file">
-                        <cxx:string>_static/parts/footer.part</cxx:string>
-                    </cxx:method>
-                </cxx:var>
+            <cxx:var name="resp.body">
+                <cxx:invoke name="load_file">
+                    <cxx:string>_static/parts/footer.part</cxx:string>
+                </cxx:invoke>
             </cxx:var>
         </div>
     </body>
