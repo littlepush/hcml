@@ -177,7 +177,7 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
 
     while ( __rindex < rbufl ) {
         /* All String */
-        while ( __rleft != 0 && rbuf[__rindex] != '<' && rbuf[__rindex] != '\0' ) {
+        while ( __rleft > 0 && rbuf[__rindex] != '<' && rbuf[__rindex] != '\0' ) {
             if ( rbuf[__rindex] == '\n' ) { ++h->line; }
             ++__rindex; --__rleft;
         }
@@ -198,105 +198,119 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
                 May be </cxx:...>, end of tag 
                 current tag must not be null, and current is a tag, and not end
             */
-            if ( __current_tag != NULL && __current_tag->is_tag == 1 ) {
-                if ( __current_tag->is_ended == 0 ) {
-                    /* Yes, we are in a tag's content, and it's not ended yet,
-                    1 for '<', 1 for current '/', 1 for the '>' after the tag name */
-                    if ( __current_tag->dl < (__rleft - 3) ) {
-                        /* Yes, we still have enough pending data to read */
-                        if ( strncmp(
-                            rbuf + __rindex + 2, 
-                            __current_tag->data_string, 
-                            __current_tag->dl) == 0 
-                        ) {
-                            /* Check if we have unsaved string before wo close the tag */
-                            if ( (rbuf + __rindex - __saved_begin) > 0 ) {
-                                /* All string */
-                                __temp_tag = __malloc_string(__saved_begin, 
-                                    (rbuf + __rindex - __saved_begin));
-                                __append_tag(h, __current_tag, __temp_tag);
-                            }
-                            /* Yes! this is the end of the tag */
-                            __current_tag->is_ended = 1;
+            if ( strncmp( rbuf + __rindex + 2, h->lang_prefix, h->lang_prefix_l) == 0 ) {
+                /* This is the language tag */
 
-                            /* Skip the end tag </...> */
-                            __rindex += (__current_tag->dl + 3);
-                            __rleft -= (__current_tag->dl - 3);
-                            /* Skip space after end of tag */
-                            while ( __rleft != 0 && isspace(rbuf[__rindex])) {
-                                if ( rbuf[__rindex] == '\n' ) ++h->line;
-                                ++__rindex; --__rleft;
-                            }
-                            __CHK_LEFT_NOT_ZERO__()
-                            /* Go to check next value */
-                            __saved_begin = (rbuf + __rindex);
-                            continue;
-                        } else {
-                            /* This may be not cxx tag, can be an html end tag */
-                            /* Skip current </ */
-                            __rindex += 2; 
-                            __rleft -= 2;
-                            continue;
-                        }
-                    } else {
-                        __set_error__(h, HCML_ERR_EPARSE,
-                            "Parse Error: missing end tag of %s, line: %d", 
-                            __current_tag->data_string, h->line);
-                        break;
-                    }
-                } else {
-                    /* check parent tag */
-                    if ( __current_tag->f_tag != NULL && __current_tag->f_tag->is_ended == 0 ) {
-                        if ( __current_tag->f_tag->dl < (__rleft - 3) ) {
+                if ( __current_tag != NULL && __current_tag->is_tag == 1 ) {
+                    if ( __current_tag->is_ended == 0 ) {
+                        /* Yes, we are in a tag's content, and it's not ended yet,
+                        1 for '<', 1 for current '/', 1 for the '>' after the tag name */
+                        if ( __current_tag->dl < (__rleft - (2 + h->lang_prefix_l + 1)) ) {
+                            /* Yes, we still have enough pending data to read */
                             if ( strncmp(
-                                rbuf + __rindex + 2,
-                                __current_tag->f_tag->data_string,
-                                __current_tag->f_tag->dl
-                                ) == 0 
+                                rbuf + __rindex + 2 + h->lang_prefix_l + 1, 
+                                __current_tag->data_string, 
+                                __current_tag->dl) == 0 
                             ) {
-                                /* Check if we have unsaved string before wo close the tag */
+                                /* Check if we have unsaved string before we close the tag */
                                 if ( (rbuf + __rindex - __saved_begin) > 0 ) {
                                     /* All string */
                                     __temp_tag = __malloc_string(__saved_begin, 
                                         (rbuf + __rindex - __saved_begin));
                                     __append_tag(h, __current_tag, __temp_tag);
                                 }
-                                /* Pop current tag, go up level */
-                                __current_tag = __current_tag->f_tag;
+                                /* Yes! this is the end of the tag */
                                 __current_tag->is_ended = 1;
 
-                                /* Skip the end tag </...> */
-                                __rindex += (__current_tag->dl + 3);
-                                __rleft -= (__current_tag->dl - 3);
-
+                                /* Skip the end tag </...:xxx> */
+                                __rindex += (2 + h->lang_prefix_l + 1 + __current_tag->dl + 1);
+                                __rleft -= (2 + h->lang_prefix_l + 1 + __current_tag->dl + 1);
                                 /* Skip space after end of tag */
-                                while ( __rleft != 0 && isspace(rbuf[__rindex])) {
+                                while ( __rleft > 0 && isspace(rbuf[__rindex])) {
                                     if ( rbuf[__rindex] == '\n' ) ++h->line;
                                     ++__rindex; --__rleft;
                                 }
-                                __CHK_LEFT_NOT_ZERO__()
-                                /* Go back to check next value */
+                                if ( __rleft == 0 ) {
+                                    /* We reach the end of file */
+                                    break;
+                                }
+                                /* Go to check next value */
                                 __saved_begin = (rbuf + __rindex);
-
                                 continue;
                             } else {
-                                // We are still in string tag, not need to end now
-                                ++__rindex; --__rleft;
+                                /* This may be not cxx tag, can be an html end tag */
+                                /* Skip current </ */
+                                __rindex += 2; 
+                                __rleft -= 2;
                                 continue;
                             }
                         } else {
                             __set_error__(h, HCML_ERR_EPARSE,
-                                "Parse Error: missing end tag of %.*s, line: %d", 
-                                __current_tag->dl,
+                                "Parse Error: missing end tag of %s, line: %d", 
                                 __current_tag->data_string, h->line);
                             break;
                         }
                     } else {
-                        // We are still in string tag, not need to end now
-                        ++__rindex; --__rleft;
-                        continue;
+                        /* check parent tag */
+                        if ( __current_tag->f_tag != NULL && __current_tag->f_tag->is_ended == 0 ) {
+                            if ( __current_tag->f_tag->dl < (__rleft - (2 + h->lang_prefix_l + 1)) ) {
+                                if ( strncmp(
+                                    rbuf + __rindex + 2 + h->lang_prefix_l + 1,
+                                    __current_tag->f_tag->data_string,
+                                    __current_tag->f_tag->dl
+                                    ) == 0 
+                                ) {
+                                    /* Check if we have unsaved string before wo close the tag */
+                                    if ( (rbuf + __rindex - __saved_begin) > 0 ) {
+                                        /* All string */
+                                        __temp_tag = __malloc_string(__saved_begin, 
+                                            (rbuf + __rindex - __saved_begin));
+                                        __append_tag(h, __current_tag, __temp_tag);
+                                    }
+                                    /* Pop current tag, go up level */
+                                    __current_tag = __current_tag->f_tag;
+                                    __current_tag->is_ended = 1;
+
+                                    /* Skip the end tag </...:xxx> */
+                                    __rindex += (2 + h->lang_prefix_l + 1 + __current_tag->dl + 1);
+                                    __rleft -= (2 + h->lang_prefix_l + 1 + __current_tag->dl + 1);
+
+                                    /* Skip space after end of tag */
+                                    while ( __rleft > 0 && isspace(rbuf[__rindex])) {
+                                        if ( rbuf[__rindex] == '\n' ) ++h->line;
+                                        ++__rindex; --__rleft;
+                                    }
+                                    if ( __rleft == 0 ) {
+                                        /* We reach the end of file */
+                                        break;
+                                    }
+                                    /* Go back to check next value */
+                                    __saved_begin = (rbuf + __rindex);
+
+                                    continue;
+                                } else {
+                                    // We are still in string tag, not need to end now
+                                    ++__rindex; --__rleft;
+                                    continue;
+                                }
+                            } else {
+                                __set_error__(h, HCML_ERR_EPARSE,
+                                    "Parse Error: missing end tag of %.*s, line: %d", 
+                                    __current_tag->dl,
+                                    __current_tag->data_string, h->line);
+                                break;
+                            }
+                        } else {
+                            // We are still in string tag, not need to end now
+                            ++__rindex; --__rleft;
+                            continue;
+                        }
                     }
                 }
+            } else {
+                // We are still in string tag, not need to end now
+                ++__rindex; --__rleft;
+                continue;
             }
         }
 
@@ -329,14 +343,15 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
                     ++__rindex; --__rleft;
                 }
                 __CHK_LEFT_NOT_ZERO__()
-                __temp_tag = __malloc_tag( __saved_begin, (rbuf + __rindex - __saved_begin) );
+                __temp_tag = __malloc_tag( __saved_begin + h->lang_prefix_l + 1, 
+                    (rbuf + __rindex - __saved_begin - h->lang_prefix_l - 1) );
                 if ( __root_tag == NULL ) __root_tag = __temp_tag;
                 __current_tag = __append_tag(h, __current_tag, __temp_tag);
                 if ( __current_tag == NULL ) break;
 
                 while ( __flag == 0 ) {
                     /* Skip all whitespace */
-                    while ( __rleft != 0 && isspace(rbuf[__rindex]) ) {
+                    while ( __rleft > 0 && isspace(rbuf[__rindex]) ) {
                         if ( rbuf[__rindex] == '\n' ) { ++h->line; }
                         ++__rindex; --__rleft;                    
                     }
@@ -358,7 +373,7 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
                             Will be consider as __KEY__="true"
                         */
                         __saved_begin = rbuf + __rindex;
-                        while ( __rleft != 0 && isalpha(rbuf[__rindex]) ) {
+                        while ( __rleft > 0 && isalpha(rbuf[__rindex]) ) {
                             if ( rbuf[__rindex] == '\n' ) ++h->line;
                             ++__rindex; --__rleft;;
                         }
@@ -388,7 +403,7 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
                             /* Skip the first '"' */
                             __rindex += 2; __rleft -= 2;
                             do {
-                                while ( __rleft != 0 && rbuf[__rindex] != '"' ) {
+                                while ( __rleft > 0 && rbuf[__rindex] != '"' ) {
                                     ++__rindex; --__rleft;
                                 }
                                 __CHK_LEFT_NOT_ZERO__(__flag = 1)
@@ -426,7 +441,7 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
                     /* Current tag begin part has end */
                     ++__rindex, --__rleft;
                     /* Skip space after end of tag */
-                    while ( __rleft != 0 && isspace(rbuf[__rindex])) {
+                    while ( __rleft > 0 && isspace(rbuf[__rindex])) {
                         if ( rbuf[__rindex] == '\n' ) ++h->line;
                         ++__rindex; --__rleft;
                     }

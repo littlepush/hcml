@@ -200,7 +200,7 @@ int __generate_cxx_binary_operator( hcml_node_t *h, struct hcml_tag_t *op_tag, c
 
 /* Generate Keyword tag */
 int __generate_cxx_keyword( hcml_node_t *h, const char *keyword ) {
-    __append_code_format(h, "%s", keyword);
+    __append_code_format(h, "%s ", keyword);
     return h->errcode;
 }
 
@@ -240,7 +240,7 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
             __pgetaddr = __cxx_get_prop(root_tag, "addr");
             __pgetref = __cxx_get_prop(root_tag, "ref");
 
-            if ( __cxx_is_tag(root_tag, "cxx:string") ) {
+            if ( __cxx_is_tag(root_tag, "string") ) {
                 if ( !__append_code_format(h, "\"") ) break;
                 if ( root_tag->c_tag != NULL ) {
                     // String Tag is an atomic tag, all data insider will be wraped
@@ -252,7 +252,7 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                     }
                 }
                 if ( !__append_code_format(h, "\"") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:const") ) {
+            } else if ( __cxx_is_tag(root_tag, "const") ) {
                 if ( root_tag->c_tag == NULL ) {
                     hcml_set_error(h, HCML_ERR_ESYNTAX, 
                         "Syntax Error, invalid const tag");
@@ -263,9 +263,9 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                 ) {
                     break;
                 }
-            } else if ( __cxx_is_tag(root_tag, "cxx:empty") ) {
+            } else if ( __cxx_is_tag(root_tag, "empty") ) {
                 /* Do nothing for empty tag */
-            } else if ( __cxx_is_tag(root_tag, "cxx:invoke") ) {
+            } else if ( __cxx_is_tag(root_tag, "invoke") ) {
                 __prop = __cxx_get_prop(root_tag, "ptr");
                 if ( __prop != NULL ) {
                     if ( !__append_code_format(h, "->") ) break;
@@ -285,7 +285,7 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                     h->rsize -= 2;
                 }
                 if ( !__append_code_format(h, ")" ) ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:call") ) {
+            } else if ( __cxx_is_tag(root_tag, "call") ) {
                 __prop = __cxx_get_prop(root_tag, "name");
                 if ( __prop == NULL ) {
                     hcml_set_error(h, HCML_ERR_ESYNTAX, 
@@ -299,14 +299,14 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                     h->rsize -= 2;
                 }
                 if ( !__append_code_format(h, ")" ) ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:list") ) {
+            } else if ( __cxx_is_tag(root_tag, "list") ) {
                 if ( !__append_code_format(h, "{") ) break;
                 if ( root_tag->c_tag != NULL ) {
                     if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag, ", ") ) break;
                     h->rsize -= 2;
                 }
                 if ( !__append_code_format(h, "}" ) ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:var") ) {
+            } else if ( __cxx_is_tag(root_tag, "var") ) {
                 __prop = __cxx_get_prop(root_tag, "type");
                 if ( __prop != NULL ) {
                     if ( !__append_code_format(h, "%.*s ", __prop->vl, __prop->value) ) break;
@@ -327,7 +327,7 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                 if ( root_tag->c_tag != NULL ) {
                     if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag, NULL) ) break;
                 }
-            } else if ( __cxx_is_tag(root_tag, "cxx:code") ) {
+            } else if ( __cxx_is_tag(root_tag, "code") ) {
                 if ( root_tag->c_tag == NULL ) {
                     hcml_set_error(h, HCML_ERR_ESYNTAX, 
                         "Syntax Error, invalid code tag");
@@ -338,12 +338,12 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                 ) {
                     break;
                 }
-            } else if ( __cxx_is_tag(root_tag, "cxx:line") ) {
+            } else if ( __cxx_is_tag(root_tag, "line") ) {
                 if ( root_tag->c_tag != NULL ) {
                     if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag, NULL) ) break;
                 }
                 if ( !__append_code_format(h, ";") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:print")) {
+            } else if ( __cxx_is_tag(root_tag, "print")) {
                 if ( !__append_code_format(h, "%s(", h->print_method) ) break;
                 if ( root_tag->c_tag == NULL ) {
                     hcml_set_error(h, HCML_ERR_ESYNTAX, 
@@ -352,59 +352,59 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                 }
                 if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag, NULL) ) break;
                 if ( !__append_code_format(h, ");") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:subscript") ) {
+            } else if ( __cxx_is_tag(root_tag, "subscript") ) {
                 if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "[", "]", NULL) ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:block") ) {
+            } else if ( __cxx_is_tag(root_tag, "block") ) {
                 if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "{\n", "}", "\n") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:parentheses") ) {
+            } else if ( __cxx_is_tag(root_tag, "parentheses") ) {
                 if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "(", ")", NULL) ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:post_increase") ) {
+            } else if ( __cxx_is_tag(root_tag, "post_increase") ) {
                 if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "(", ")++", NULL) ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:pre_increase") ) {
+            } else if ( __cxx_is_tag(root_tag, "pre_increase") ) {
                 if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "++(", ")", NULL) ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:post_decrease") ) {
+            } else if ( __cxx_is_tag(root_tag, "post_decrease") ) {
                 if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "(", ")--", NULL) ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:pre_decrease") ) {
+            } else if ( __cxx_is_tag(root_tag, "pre_decrease") ) {
                 if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "--(", ")", NULL) ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:set") ) {
+            } else if ( __cxx_is_tag(root_tag, "set") ) {
                 if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, "=") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:great") ) {
+            } else if ( __cxx_is_tag(root_tag, "great") ) {
                 if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, ">") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:greatequal") ) {
+            } else if ( __cxx_is_tag(root_tag, "greatequal") ) {
                 if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, ">=") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:less") ) {
+            } else if ( __cxx_is_tag(root_tag, "less") ) {
                 if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, "<") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:lessequan") ) {
+            } else if ( __cxx_is_tag(root_tag, "lessequan") ) {
                 if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, "<=") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:equal") ) {
+            } else if ( __cxx_is_tag(root_tag, "equal") ) {
                 if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, "==") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:notequal") ) {
+            } else if ( __cxx_is_tag(root_tag, "notequal") ) {
                 if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, "!=") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:plus") ) {
+            } else if ( __cxx_is_tag(root_tag, "plus") ) {
                 if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, "+") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:minus") ) {
+            } else if ( __cxx_is_tag(root_tag, "minus") ) {
                 if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, "-") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:times") ) {
+            } else if ( __cxx_is_tag(root_tag, "times") ) {
                 if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, "*") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:divid") ) {
+            } else if ( __cxx_is_tag(root_tag, "divid") ) {
                 if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, "/") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:mod") ) {
+            } else if ( __cxx_is_tag(root_tag, "mod") ) {
                 if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, "%") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:return") ) {
-                if ( HCML_ERR_OK != __generate_cxx_keyword(h, "return;") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:break") ) {
-                if ( HCML_ERR_OK != __generate_cxx_keyword(h, "break;") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:continue") ) {
-                if ( HCML_ERR_OK != __generate_cxx_keyword(h, "continue;") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:true") ) {
+            } else if ( __cxx_is_tag(root_tag, "return") ) {
+                if ( HCML_ERR_OK != __generate_cxx_keyword(h, "return") ) break;
+            } else if ( __cxx_is_tag(root_tag, "break") ) {
+                if ( HCML_ERR_OK != __generate_cxx_keyword(h, "break") ) break;
+            } else if ( __cxx_is_tag(root_tag, "continue") ) {
+                if ( HCML_ERR_OK != __generate_cxx_keyword(h, "continue") ) break;
+            } else if ( __cxx_is_tag(root_tag, "true") ) {
                 if ( HCML_ERR_OK != __generate_cxx_keyword(h, "true") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:false") ) {
+            } else if ( __cxx_is_tag(root_tag, "false") ) {
                 if ( HCML_ERR_OK != __generate_cxx_keyword(h, "false") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:new") ) {
+            } else if ( __cxx_is_tag(root_tag, "new") ) {
                 if ( HCML_ERR_OK != __generate_cxx_keyword(h, "new") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:delete") ) {
+            } else if ( __cxx_is_tag(root_tag, "delete") ) {
                 if ( HCML_ERR_OK != __generate_cxx_keyword(h, "delete ") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:typeinit") ) {
+            } else if ( __cxx_is_tag(root_tag, "typeinit") ) {
                 __prop = __cxx_get_prop(root_tag, "type");
                 if ( __prop == NULL ) {
                     hcml_set_error(h, HCML_ERR_ESYNTAX, 
@@ -418,19 +418,19 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                     h->rsize -= 2;
                 }
                 if ( !__append_code_format(h, ")" ) ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:condition") ) {
+            } else if ( __cxx_is_tag(root_tag, "condition") ) {
                 if ( root_tag->c_tag == NULL ) {
                     hcml_set_error(h, HCML_ERR_ESYNTAX, 
                         "Syntax Error: invalidate condition, missing case");
                     break;
                 }
-                if ( !__cxx_is_tag(root_tag->c_tag, "cxx:case") ) {
+                if ( !__cxx_is_tag(root_tag->c_tag, "case") ) {
                     hcml_set_error(h, HCML_ERR_ESYNTAX, 
                         "Syntax Error: invalidate condition, first child must be case");
                     break;
                 }
                 if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag, NULL) ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:case") ) {
+            } else if ( __cxx_is_tag(root_tag, "case") ) {
                 if ( root_tag->f_tag == NULL ) {
                     hcml_set_error(h, HCML_ERR_ESYNTAX, 
                         "Syntax Error: cannot use case individual");
@@ -452,7 +452,7 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                     break;
                 if ( !__append_code_format(h, " ) ") ) break;
                 if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag->n_tag, NULL) ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:else") ) {
+            } else if ( __cxx_is_tag(root_tag, "else") ) {
                 if ( root_tag->f_tag == NULL ) {
                     hcml_set_error(h, HCML_ERR_ESYNTAX, 
                         "Syntax Error: cannot use else individual");
@@ -465,7 +465,7 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                     break;
                 }
                 if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag, "\n") ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:each") ) {
+            } else if ( __cxx_is_tag(root_tag, "each") ) {
                 if ( __tag_child_count(root_tag) < 3 ) {
                     hcml_set_error(h, HCML_ERR_ESYNTAX, 
                         "Syntax Error: each must have at least 3 child node");
@@ -481,7 +481,7 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                 /* All node from 3rd will be formateed as the loop body */
                 if ( HCML_ERR_OK != hcml_generate_cxx_lang(
                     h, __child_tag_at_index(root_tag, 2), NULL) ) break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:for") ) {
+            } else if ( __cxx_is_tag(root_tag, "for") ) {
                 if ( __tag_child_count(root_tag) < 4 ) {
                     hcml_set_error(h, HCML_ERR_ESYNTAX, 
                         "Syntax Error: for must have at least 4 child node");
@@ -498,7 +498,7 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                 if ( HCML_ERR_OK != hcml_generate_cxx_lang(
                     h, __child_tag_at_index(root_tag, 3), NULL) ) 
                     break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:while") ) {
+            } else if ( __cxx_is_tag(root_tag, "while") ) {
                 if ( __tag_child_count(root_tag) < 2 ) {
                     hcml_set_error(h, HCML_ERR_ESYNTAX, 
                         "Syntax Error: while must have at least 2 child node");
@@ -510,7 +510,7 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                 if ( HCML_ERR_OK != hcml_generate_cxx_lang(
                     h, __child_tag_at_index(root_tag, 1), NULL) )
                     break;
-            } else if ( __cxx_is_tag(root_tag, "cxx:do") ) {
+            } else if ( __cxx_is_tag(root_tag, "do") ) {
                 if ( __tag_child_count(root_tag) < 2 ) {
                     hcml_set_error(h, HCML_ERR_ESYNTAX, 
                         "Syntax Error: while must have at least 2 child node");
