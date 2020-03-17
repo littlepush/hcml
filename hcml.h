@@ -36,9 +36,9 @@
 #include <stdio.h>
 
 /* Version 0.1 */
-#define HCML_VERSION                0x00000002
+#define HCML_VERSION                0x00000003
 #ifndef PACKAGE_VERSION
-#define HCML_VERSION_STRING         "0.2"
+#define HCML_VERSION_STRING         "0.3"
 #else
 #define HCML_VERSION_STRING         PACKAGE_VERSION
 #endif
@@ -110,6 +110,10 @@
 extern "C" {
 #endif
 
+#ifndef HCML_ORIGIN_SOURCE_STRING
+#define __MIN_PURE_STRING__         1
+#endif
+
 /* 
     The HCML Object Handler 
  */
@@ -138,7 +142,7 @@ const char * hcml_get_errstr( hcml_t h );
 /*
     Get the last error code
  */
-int hcml_get_errno( hcml_t h );
+int hcml_get_errcode( hcml_t h );
 
 /*
     Set error code and message
@@ -163,16 +167,36 @@ const char * hcml_get_print_method( hcml_t h );
 /*
     Set the language prefix, default is "cxx" and return the old
  */
-hcml_lang_generator hcml_set_lang_generator( hcml_t h, hcml_lang_generator fp );
-
 void hcml_set_lang_prefix( hcml_t h, const char * prefix );
+
 /*
     Get the language prefix
  */
 const char * hcml_get_lang_prefix( hcml_t h );
 
+/*
+    Set and get the old language generator function point.
+    fp can be NULL
+*/
+hcml_lang_generator hcml_set_lang_generator( hcml_t h, hcml_lang_generator fp );
+
+/*
+    Set and get the old extend language generator function point.
+    fp can be NULL
+*/
+hcml_lang_generator hcml_set_exlang_generator( hcml_t h, hcml_lang_generator fp );
+
 /* Dump debug structure info */
 void hcml_dump_tag( struct hcml_tag_t * root, int lv );
+
+/* Append Data to node result */
+int hcml_append_code_data( hcml_node_t *h, const char *s, int l );
+
+/* Append Code Format */
+int hcml_append_code_format( hcml_node_t *h, const char *fmt, ... );
+
+/* Append Pure string, will automatically change the escape char */
+int hcml_append_pure_string( hcml_node_t *h, const char *s, int l );
 
 /*
     Parse the input file and output to a dynamically allocated memory

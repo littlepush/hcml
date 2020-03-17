@@ -45,6 +45,8 @@ class hcml {
     hcml_t              handler__;
 
 public: 
+    typedef std::function< int(hcml_node_t*, struct hcml_tag_t*, const char *) >    fp_lang_t;
+
     // Constructure: Automaticall create a new handler
     hcml( ) : handler__( hcml_create() ) { }
     ~hcml( ) { if ( handler__ != 0 ) hcml_destroy(handler__); }
@@ -55,6 +57,7 @@ public:
         hcml_set_print_method(handler__, hcml_get_print_method(rhs.handler__));
         hcml_set_lang_prefix(handler__, hcml_get_lang_prefix(rhs.handler__));
         hcml_set_lang_generator(handler__, hcml_set_lang_generator(rhs.handler__, NULL));
+        hcml_set_exlang_generator(handler__, hcml_set_exlang_generator(rhs.handler__, NULL));
     }
     hcml( hcml&& rhs ) : handler__(rhs.handler__) {
         rhs.handler__ = 0;
@@ -64,6 +67,7 @@ public:
         hcml_set_print_method(handler__, hcml_get_print_method(rhs.handler__));
         hcml_set_lang_prefix(handler__, hcml_get_lang_prefix(rhs.handler__));
         hcml_set_lang_generator(handler__, hcml_set_lang_generator(rhs.handler__, NULL));
+        hcml_set_exlang_generator(handler__, hcml_set_exlang_generator(rhs.handler__, NULL));
         return *this;
     }
     hcml & operator = ( hcml&& rhs ) {
@@ -84,11 +88,11 @@ public:
     }
 
     // Error
-    int errno() const {
+    int errcode() const {
         if ( handler__ == 0 ) return 0;
-        return hcml_get_errno(handler__);
+        return hcml_get_errcode(handler__);
     }
-    const char * errstr() const {
+    const char * errmsg() const {
         if ( handler__ == 0 ) return NULL;
         return hcml_get_errstr(handler__);
     }
@@ -104,6 +108,34 @@ public:
         return (size_t)hcml_get_output_size(handler__);
     }
 
+    // Print Method
+    const char * get_print_method() const {
+        if ( handler__ == 0 ) return NULL;
+        return hcml_get_print_method(handler__);
+    }
+
+    void set_print_method( const std::string& method ) {
+        if (handler__ == 0 ) return;
+        hcml_set_print_method( handler__, method.c_str() );
+    }
+
+    // Function Point
+    void set_lang_generator( fp_lang_t arg ) {
+        if ( handler__ == 0 ) return;
+        auto _fp = arg.target< hcml_lang_generator >();
+        if ( _fp ) {
+            hcml_set_lang_generator(handler__, *_fp );
+        }
+    }
+
+    void set_exlang_generator( fp_lang_t arg ) {
+        if ( handler__ == 0 ) return;
+        auto _fp = arg.target< hcml_lang_generator >();
+        if ( _fp ) {
+            hcml_set_exlang_generator(handler__, *_fp );
+        }
+    }
+
     // Do Parse
     bool parse( const std::string& source_path ) {
         if ( handler__ == 0 ) return false;
@@ -112,16 +144,16 @@ public:
 };
 
 template < typename _TyStream >
-_TyStream& opreator << ( _TyStream& os, const hcml& h ) {
-    if ( h.errno() == HCML_ERR_OK ) {
+_TyStream& operator << ( _TyStream& os, const hcml& h ) {
+    if ( h.errcode() == HCML_ERR_OK ) {
         os << h.result();
     } else {
-        os << h.errstr();
+        os << h.errmsg();
     }
     return os;
 }
 
-/*
+#endif /*
     __hcml.hpp__
     Push Chen
 */

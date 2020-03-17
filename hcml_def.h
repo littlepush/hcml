@@ -60,6 +60,8 @@ typedef struct {
     int                         line;
     /* Language Generator Function Point */
     void                        *langfp;
+    /* Extended Language Function Point */
+    void                        *exlangfp;
 } hcml_node_t;
 
 /* Tag Property Node */

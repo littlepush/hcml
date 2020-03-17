@@ -4,7 +4,7 @@
 AC_PREREQ([2.69])
 AC_INIT(
     [hcml], 
-    [0.2], 
+    [0.3], 
     [littlepush@gmail.com], 
     [], 
     [https://github.com/littlepush/hcml])

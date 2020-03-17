@@ -66,7 +66,7 @@ const char * hcml_get_errstr( hcml_t h );
 ```
 ### * Get the last error code
 ```
-int hcml_get_errno( hcml_t h );
+int hcml_get_errcode( hcml_t h );
 ```
 ### * Set error code and message
 ```
@@ -95,6 +95,10 @@ const char * hcml_get_lang_prefix( hcml_t h );
 ### * Change the language generator, maybe you want to write a Python generator
 ```
 hcml_lang_generator hcml_set_lang_generator( hcml_t h, hcml_lang_generator fp );
+```
+### * Set and get the old extend language generator function point.
+```
+hcml_lang_generator hcml_set_exlang_generaotr( hcml_t h, hcml_lang_generator fp );
 ```
 ### * Dump debug structure info
 ```

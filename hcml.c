@@ -475,6 +475,7 @@ hcml_t hcml_create() {
     strcpy(_h->lang_prefix, "cxx");
     _h->lang_prefix_l = 3;
     _h->langfp = (void *)&hcml_generate_cxx_lang;
+    _h->exlangfp = NULL;
     return (hcml_t)_h;
 }
 
@@ -617,7 +618,8 @@ void hcml_dump_tag( struct hcml_tag_t * root, int lv ) {
     }
 }
 /*
-    Set the language prefix, default is "cxx" and return the old
+    Set and get the old language generator function point.
+    fp can be NULL
  */
 hcml_lang_generator hcml_set_lang_generator( hcml_t h, hcml_lang_generator fp ) {
     void *_ofp;
@@ -628,6 +630,129 @@ hcml_lang_generator hcml_set_lang_generator( hcml_t h, hcml_lang_generator fp ) 
     }
     return (hcml_lang_generator)_ofp;
 }
+/*
+    Set and get the old extend language generator function point.
+    fp can be NULL
+*/
+hcml_lang_generator hcml_set_exlang_generator( hcml_t h, hcml_lang_generator fp ) {
+    void *_ofp;
+    if ( h == 0 ) return NULL;
+    _ofp = ((hcml_node_t *)h)->exlangfp;
+    if ( fp != NULL ) {
+        ((hcml_node_t *)h)->exlangfp = (void *)fp;
+    }
+    return (hcml_lang_generator)_ofp;
+}
+
+
+/* Append Data to node result */
+int hcml_append_code_data( hcml_node_t *h, const char *s, int l ) {
+    if ( l == 0 ) { return 1; }
+    while ( (h->bufsize - h->rsize) <= l ) {
+        h->presult = (char *)realloc(h->presult, h->bufsize * 2);
+        if ( h->presult == NULL ) {
+            hcml_set_error(h, HCML_ERR_ERBUFALLOC, 
+                "Malloc Error for Result Buffer");
+            return 0;
+        }
+        h->bufsize *= 2;
+    }
+    strncpy( h->presult + h->rsize, s, l );
+    h->rsize += l;
+    h->presult[h->rsize] = '\0';
+    return 1;
+}
+
+/* Append Code Format */
+int hcml_append_code_format( hcml_node_t *h, const char *fmt, ... ) {
+    int _append_len;
+    va_list _arglist;
+    va_start( _arglist, fmt );
+#ifdef __IS_WINDOWS__
+    _append_len = vsprintf_s( NULL, 0, fmt, _arglist );
+#else
+    _append_len = vsnprintf( NULL, 0, fmt, _arglist );
+#endif
+    va_end( _arglist );
+    if ( _append_len == 0 ) return 1;
+    va_start( _arglist, fmt );
+    while ( (h->bufsize - h->rsize) <= _append_len ) {
+        h->presult = (char *)realloc(h->presult, h->bufsize * 2);
+        if ( h->presult == NULL ) {
+            hcml_set_error(h, HCML_ERR_ERBUFALLOC, 
+                "Malloc Error for Result Buffer");
+            return 0;
+        }
+        h->bufsize *= 2;
+    }
+#ifdef __IS_WINDOWS__
+    _append_len = vsprintf_s( h->presult + h->rsize, h->bufsize - h->rsize, fmt, _arglist );
+#else
+    _append_len = vsnprintf( h->presult + h->rsize, h->bufsize - h->rsize, fmt, _arglist );
+#endif
+    h->rsize += _append_len;
+    h->presult[h->rsize] = '\0';
+    return 1;
+}
+
+/* Append Pure string, will automatically change the escape char */
+int hcml_append_pure_string( hcml_node_t *h, const char *s, int l ) {
+    int _w, _i, _all;
+    _w = _i = _all = 0;
+    while ( _w < l ) {
+#if defined(__MIN_PURE_STRING__) && __MIN_PURE_STRING__ == 1
+        while ( _i < l && (!isspace(s[_i])) && s[_i] != '\\' && s[_i] != '\"' && s[_i] != '>' ) ++_i;
+#else
+        while ( _i < l && (!isspace(s[_i])) && s[_i] != '\\' && s[_i] != '\"' ) ++_i;
+#endif
+        if ( (_i - _w) > 0 ) {
+            if ( !hcml_append_code_data(h, s + _w, _i - _w) ) return 0;
+            _all += (_i - _w);
+        }
+        if ( _i == l ) break;
+#if defined(__MIN_PURE_STRING__) && __MIN_PURE_STRING__ == 1
+        if ( s[_i] == '>' ) {
+            if ( !hcml_append_code_data(h, ">", 1) ) return 0;
+            ++_i;
+            ++_all;
+            while ( _i < l && isspace(s[_i]) ) {
+                ++_i;
+            }
+            _w = _i;
+            continue;
+        }
+#endif
+        if ( s[_i] == '"' ) {
+            if ( !hcml_append_code_data(h, "\\\"", 2) ) return 0;
+            _all += 1;
+        } else if ( s[_i] == '\\' ) {
+            if ( !hcml_append_code_data(h, "\\\\", 2) ) return 0;
+            _all += 1;
+        } else if ( s[_i] == '\r' ) {
+            if ( !hcml_append_code_data(h, "\\r", 2) ) return 0;
+            _all += 1;
+        } else if ( s[_i] == '\n' ) {
+            if ( !hcml_append_code_data(h, "\\n", 2) ) return 0;
+            _all += 1;
+        } else if ( s[_i] == '\t' ) {
+            if ( !hcml_append_code_data(h, "\\t", 2) ) return 0;
+            _all += 1;
+        } else if ( s[_i] == '\v' ) {
+            if ( !hcml_append_code_data(h, "\\v", 2) ) return 0;
+            _all += 1;
+        } else if ( s[_i] == '\f' ) {
+            if ( !hcml_append_code_data(h, "\\f", 2) ) return 0;
+            _all += 1;
+        } else if ( s[_i] == ' ' ) {
+            if ( !hcml_append_code_data(h, " ", 1) ) return 0;
+            _all += 1;
+        }
+        ++_i;
+        _w = _i;
+    }
+    return _all;
+}
+
 /*
     Parse the input file and output to a dynamically allocated memory
  */
