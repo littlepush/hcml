@@ -636,14 +636,12 @@ int hcml_parse( hcml_t h, const char * src_path ) {
     char *__sbuf; /* Source Code Reading Buffer */
     int __fdsrc; /* source file handler */
     int __fsize;
-    const char *__src_path; /* Temp source path if we need to guess the input language */
     struct stat __fstat;
 
     /* Init */
     _h = (hcml_node_t *)h;
     __sbuf = NULL;
     __fdsrc = -1;
-    __src_path = NULL;
 
     /* The following error may caused by memory leak, we should not try to 
         touch the memory address in the handler */
