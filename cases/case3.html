@@ -1,0 +1,18 @@
+<cxx:set eol>
+    <cxx:var name="_ci" type="auto"></cxx:var>
+    <cxx:call name="utils::sys::cpu_count"></cxx:call>
+</cxx:set>
+<cxx:for>
+    <cxx:set>
+        <cxx:var name="i" type="size_t"></cxx:var>
+        <cxx:const>0</cxx:const>
+    </cxx:set>
+    <cxx:less>
+        <cxx:var name="i"></cxx:var>
+        <cxx:var name="_ci"></cxx:var>
+    </cxx:less>
+    <cxx:pre_increase><cxx:var name="i"></cxx:var></cxx:pre_increase>
+    <cxx:block>
+        <span id="1"></span>
+    </cxx:block>
+</cxx:for>

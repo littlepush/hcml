@@ -74,13 +74,13 @@ struct hcml_tag_t* __child_tag_at_index( struct hcml_tag_t * root_tag, int index
 }
 
 /* Break sibling relation and generate code */
-int __bread_sibling_and_generate( hcml_node_t *h, struct hcml_tag_t *root_tag, int index, const char* suf ) {
+int __break_sibling_and_generate( hcml_node_t *h, struct hcml_tag_t *root_tag, int index, const char* suf ) {
     int _c;
     struct hcml_tag_t * __tag, * __sibling;
     _c = 0;
     __tag = root_tag;
     while ( _c != index ) {
-        __tag = root_tag->n_tag;
+        __tag = __tag->n_tag;
         ++_c;
     }
     __sibling = __tag->n_tag;
@@ -110,9 +110,9 @@ int __generate_cxx_binary_operator( hcml_node_t *h, struct hcml_tag_t *op_tag, c
             "Syntax Error, missing tag arround %s", op);
         return HCML_ERR_ESYNTAX;
     }
-    if ( HCML_ERR_OK != __bread_sibling_and_generate(h, op_tag->c_tag, 0, NULL) ) return h->errcode;
+    if ( HCML_ERR_OK != __break_sibling_and_generate(h, op_tag->c_tag, 0, NULL) ) return h->errcode;
     if ( !hcml_append_code_format(h, " %s ", op) ) return h->errcode;
-    if ( HCML_ERR_OK != __bread_sibling_and_generate(h, op_tag->c_tag, 1, NULL) ) return h->errcode;
+    if ( HCML_ERR_OK != __break_sibling_and_generate(h, op_tag->c_tag, 1, NULL) ) return h->errcode;
     return HCML_ERR_OK;
 }
 
@@ -279,13 +279,13 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
             } else if ( __cxx_is_tag(root_tag, "parentheses") ) {
                 if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "(", ")", NULL) ) break;
             } else if ( __cxx_is_tag(root_tag, "post_increase") ) {
-                if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "(", ")++", NULL) ) break;
+                if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "", "++", NULL) ) break;
             } else if ( __cxx_is_tag(root_tag, "pre_increase") ) {
-                if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "++(", ")", NULL) ) break;
+                if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "++", "", NULL) ) break;
             } else if ( __cxx_is_tag(root_tag, "post_decrease") ) {
-                if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "(", ")--", NULL) ) break;
+                if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "", "--", NULL) ) break;
             } else if ( __cxx_is_tag(root_tag, "pre_decrease") ) {
-                if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "--(", ")", NULL) ) break;
+                if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "--", "", NULL) ) break;
             } else if ( __cxx_is_tag(root_tag, "set") ) {
                 if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, "=") ) break;
             } else if ( __cxx_is_tag(root_tag, "great") ) {
@@ -368,7 +368,7 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                     break;
                 }
                 /* Temperate break the relation */
-                if ( HCML_ERR_OK != __bread_sibling_and_generate(h, root_tag->c_tag, 0, NULL) )
+                if ( HCML_ERR_OK != __break_sibling_and_generate(h, root_tag->c_tag, 0, NULL) )
                     break;
                 if ( !hcml_append_code_format(h, " ) ") ) break;
                 if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag->n_tag, NULL) ) break;
@@ -393,9 +393,9 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                 }
 
                 if ( !hcml_append_code_format(h, "for (") ) break;
-                if ( HCML_ERR_OK != __bread_sibling_and_generate(h, root_tag->c_tag, 0, NULL) ) break;
+                if ( HCML_ERR_OK != __break_sibling_and_generate(h, root_tag->c_tag, 0, NULL) ) break;
                 if ( !hcml_append_code_format(h, " : ") ) break;
-                if ( HCML_ERR_OK != __bread_sibling_and_generate(h, root_tag->c_tag, 1, NULL) ) break;
+                if ( HCML_ERR_OK != __break_sibling_and_generate(h, root_tag->c_tag, 1, NULL) ) break;
                 if ( !hcml_append_code_format(h, ")") ) break;
 
                 /* All node from 3rd will be formateed as the loop body */
@@ -409,11 +409,11 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                 }
 
                 if ( !hcml_append_code_format(h, "for (") ) break;
-                if ( HCML_ERR_OK != __bread_sibling_and_generate(h, root_tag->c_tag, 0, NULL) ) break;
+                if ( HCML_ERR_OK != __break_sibling_and_generate(h, root_tag->c_tag, 0, NULL) ) break;
                 if ( !hcml_append_code_format(h, "; ") ) break;
-                if ( HCML_ERR_OK != __bread_sibling_and_generate(h, root_tag->c_tag, 1, NULL) ) break;
+                if ( HCML_ERR_OK != __break_sibling_and_generate(h, root_tag->c_tag, 1, NULL) ) break;
                 if ( !hcml_append_code_format(h, "; ") ) break;
-                if ( HCML_ERR_OK != __bread_sibling_and_generate(h, root_tag->c_tag, 2, NULL) ) break;
+                if ( HCML_ERR_OK != __break_sibling_and_generate(h, root_tag->c_tag, 2, NULL) ) break;
                 if ( !hcml_append_code_format(h, ") ") ) break;
                 if ( HCML_ERR_OK != hcml_generate_cxx_lang(
                     h, __child_tag_at_index(root_tag, 3), NULL) ) 
@@ -425,7 +425,7 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                     break;
                 }
                 if ( !hcml_append_code_format(h, "while (") ) break;
-                if ( HCML_ERR_OK != __bread_sibling_and_generate(h, root_tag->c_tag, 0, NULL) ) break;
+                if ( HCML_ERR_OK != __break_sibling_and_generate(h, root_tag->c_tag, 0, NULL) ) break;
                 if ( !hcml_append_code_format(h, ") ") ) break;
                 if ( HCML_ERR_OK != hcml_generate_cxx_lang(
                     h, __child_tag_at_index(root_tag, 1), NULL) )
@@ -441,7 +441,7 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                     h, __child_tag_at_index(root_tag, 1), NULL) )
                     break;
                 if ( !hcml_append_code_format(h, " while (") ) break;
-                if ( HCML_ERR_OK != __bread_sibling_and_generate(h, root_tag->c_tag, 0, NULL) ) break;
+                if ( HCML_ERR_OK != __break_sibling_and_generate(h, root_tag->c_tag, 0, NULL) ) break;
                 if ( !hcml_append_code_format(h, ");") ) break;
             } else {
                 if ( h->exlangfp != NULL ) {
