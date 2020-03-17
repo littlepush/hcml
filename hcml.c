@@ -30,6 +30,7 @@
 
 #include "hcml.h"
 #include "hcml_def.h"
+#include "hcml_util.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,6 +38,95 @@ extern "C" {
 
 const char *__value_true = "true";
 const char *__value_false = "false";
+
+/* Create and init a new prop node */
+struct hcml_prop_t * __malloc_prop( const char * key, int kl ) {
+    struct hcml_prop_t *_p = (struct hcml_prop_t *)malloc(sizeof(struct hcml_prop_t));
+    _p->key = key;
+    _p->kl = kl;
+    _p->value = NULL;
+    _p->vl = 0;
+    _p->n_prop = NULL;
+    return _p;
+}
+
+/* Set the prop's value */
+void __set_prop_value( struct hcml_prop_t * p, const char * value, int vl ) {
+    p->value = value;
+    p->vl = vl;
+}
+
+/* Free a property node and all it's siblings */
+void __free_prop( struct hcml_prop_t * p ) {
+    if ( p == NULL ) return;
+    if ( p->n_prop != NULL ) {
+        __free_prop(p->n_prop);
+        p->n_prop = NULL;
+    }
+    free(p);
+}
+
+/* Create and init a new tag node */
+struct hcml_tag_t * __malloc_tag( const char * key, int kl ) {
+    struct hcml_tag_t *_t = (struct hcml_tag_t *)malloc(sizeof(struct hcml_tag_t));
+    _t->data_string = key;
+    _t->dl = kl;
+    _t->is_tag = 1;
+    _t->is_ended = 0;
+    _t->p_root = NULL;
+    _t->c_tag = NULL;
+    _t->n_tag = NULL;
+    _t->f_tag = NULL;
+    return _t;
+}
+
+/* Create and init a string tag node */
+struct hcml_tag_t * __malloc_string( const char * value, int vl ) {
+    struct hcml_tag_t *_t = (struct hcml_tag_t *)malloc(sizeof(struct hcml_tag_t));
+    _t->data_string = value;
+    _t->dl = vl;
+    _t->is_tag = 0;
+    _t->is_ended = 1;
+    _t->p_root = NULL;
+    _t->c_tag = NULL;
+    _t->n_tag = NULL;
+    _t->f_tag = NULL;
+    return _t;
+}
+
+/* Free a tag node, and all it's properies and children and siblings */
+void __free_tag( struct hcml_tag_t * t ) {
+    if ( t == NULL ) return;
+    if ( t->p_root != NULL ) {
+        __free_prop(t->p_root);
+        t->p_root = NULL;
+    }
+    if ( t->c_tag != NULL ) {
+        __free_tag(t->c_tag);
+        t->c_tag = NULL;
+    }
+    if ( t->n_tag != NULL ) {
+        __free_tag(t->n_tag);
+        t->n_tag = NULL;
+    }
+    t->f_tag = NULL;
+    free(t);
+}
+
+void __print_check_escape_char( char c ) {
+    if ( isprint(c) ) {
+        printf("%c", c);
+    } else {
+        printf("0x%02x ", (unsigned char)c);
+    }
+}
+
+void __print_num_string( const char * s, int n ) {
+    int i;
+    for ( i = 0; i < n; ++i ) {
+        __print_check_escape_char( s[i] );
+    }
+}
 
 /* Append new tag To current tag list and return the new tag */
 struct hcml_tag_t * __append_tag( 
@@ -63,7 +153,7 @@ struct hcml_tag_t * __append_tag(
 
 #define __CHK_LEFT_NOT_ZERO__(...)                                      \
     if ( __rleft == 0 ) { __set_error__(h, HCML_ERR_EPARSE,             \
-        "Parse Error: invalidate tag at line: %d", h->line);           \
+        "Parse Error: invalidate tag at line: %d", h->line);            \
         __VA_ARGS__; break; }
 
 
@@ -350,8 +440,12 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
         }
     }
 
-    __dump_tag( __root_tag, 0 );
-    __generate_cxx_lang( h, __root_tag, "\n" );
+#ifdef DUMP_AFTER_PARSE
+    hcml_dump_tag( __root_tag, 0 );
+#endif
+    if ( h->langfp != NULL ) {
+        (*(hcml_lang_generator)(h->langfp))(h, __root_tag, "\n");
+    }
     __free_tag( __root_tag );
 }
 
@@ -365,6 +459,7 @@ hcml_t hcml_create() {
     /* Deefault is CXX */
     strcpy(_h->lang_prefix, "cxx");
     _h->lang_prefix_l = 3;
+    _h->langfp = (void *)&hcml_generate_cxx_lang;
     return (hcml_t)_h;
 }
 
@@ -402,6 +497,26 @@ const char * hcml_get_errstr( hcml_t h ) {
  */
 int hcml_get_errcode( hcml_t h ) {
     return ((hcml_node_t *)h)->errcode;
+}
+
+/*
+    Set error code and message
+ */
+void hcml_set_error( hcml_t h, int code, const char * msgfmt, ... ) {
+    int _ml;
+    hcml_node_t *_h;
+    va_list _arglist;
+    if ( h == 0 ) return;
+    _h = (hcml_node_t *)h;
+    va_start( _arglist, msgfmt );
+#ifdef __IS_WINDOWS__
+    _ml = vsprintf_s( _h->errmsg, 255, msgfmt, _arglist );
+#else
+    _ml = vsnprintf( _h->errmsg, 255, msgfmt, _arglist );
+#endif
+    va_end( _arglist );
+    _h->errmsg[_ml] = 0;
+    _h->errcode = code;
 }
 
 /* 
@@ -451,6 +566,53 @@ const char * hcml_get_lang_prefix( hcml_t h ) {
     return ((hcml_node_t *)h)->lang_prefix;
 }
 
+/* Dump debug structure info */
+void hcml_dump_tag( struct hcml_tag_t * root, int lv ) {
+    struct hcml_prop_t * _p;
+    if ( root->is_tag == 1 ) {
+        printf("%*s<Tag>: %.*s", lv * 2, "", root->dl, root->data_string);
+        _p = root->p_root;
+        if ( root->p_root != NULL ) printf("(");
+        while ( _p != NULL ) {
+            printf("%.*s: %.*s", _p->kl, _p->key, _p->vl, _p->value);
+            if ( _p->n_prop != NULL ) {
+                printf(", ");
+            }
+            _p = _p->n_prop;
+        }
+        if ( root->p_root != NULL ) printf(")");
+        printf("\n");
+    } else {
+        if ( root->dl > 10 ) {
+            printf("%*s<String>: ", lv * 2, "");
+            __print_num_string( root->data_string, 6 );
+            printf("...");
+            __print_num_string( root->data_string + root->dl - 4, 4 );
+        } else {
+            printf("%*s<String>: ", lv * 2, "");
+            __print_num_string( root->data_string, root->dl );
+        }
+        printf("(%d)\n", root->dl);
+    }
+    if ( root->c_tag != NULL ) {
+        hcml_dump_tag(root->c_tag, lv + 1);
+    }
+    if ( root->n_tag != NULL ) {
+        hcml_dump_tag(root->n_tag, lv);
+    }
+}
+/*
+    Set the language prefix, default is "cxx" and return the old
+ */
+hcml_lang_generator hcml_set_lang_generator( hcml_t h, hcml_lang_generator fp ) {
+    void *_ofp;
+    if ( h == 0 ) return NULL;
+    _ofp = ((hcml_node_t *)h)->langfp;
+    if ( fp != NULL ) {
+        ((hcml_node_t *)h)->langfp = (void *)fp;
+    }
+    return (hcml_lang_generator)_ofp;
+}
 /*
     Parse the input file and output to a dynamically allocated memory
  */

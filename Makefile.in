@@ -135,7 +135,7 @@ am__uninstall_files_from_dir = { \
   }
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libhcml_la_LIBADD =
-am_libhcml_la_OBJECTS = hcml.lo hcml_def.lo
+am_libhcml_la_OBJECTS = hcml.lo hcml_cxx.lo
 libhcml_la_OBJECTS = $(am_libhcml_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -160,7 +160,7 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/build/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/hcml-test.Po ./$(DEPDIR)/hcml.Plo \
-	./$(DEPDIR)/hcml_def.Plo
+	./$(DEPDIR)/hcml_cxx.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -381,10 +381,12 @@ AM_CXXFLAGS = \
 lib_LTLIBRARIES = libhcml.la
 libhcml_la_SOURCES = \
 	hcml.c \
-	hcml_def.c
+	hcml_cxx.c
 
 include_HEADERS = \
 	hcml.h \
+	hcml_def.h \
+	hcml_cxx.h \
 	hcml.hpp
 
 hcmlt_LDADD = libhcml.la
@@ -526,7 +528,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hcml-test.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hcml.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hcml_def.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hcml_cxx.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -885,7 +887,7 @@ distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 		-rm -f ./$(DEPDIR)/hcml-test.Po
 	-rm -f ./$(DEPDIR)/hcml.Plo
-	-rm -f ./$(DEPDIR)/hcml_def.Plo
+	-rm -f ./$(DEPDIR)/hcml_cxx.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-libtool distclean-tags
@@ -935,7 +937,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -rf $(top_srcdir)/autom4te.cache
 		-rm -f ./$(DEPDIR)/hcml-test.Po
 	-rm -f ./$(DEPDIR)/hcml.Plo
-	-rm -f ./$(DEPDIR)/hcml_def.Plo
+	-rm -f ./$(DEPDIR)/hcml_cxx.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

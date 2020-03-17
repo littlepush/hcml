@@ -1,9 +1,9 @@
 /*
-    hcml_def.c
+    hcml_cxx.c
     Project: HCML
     Author: Push Chen(littlepush)
     Github: https://github.com/littlepush/hcml
-    Date: 2020-03-16
+    Date: 2020-03-17
 
     MIT License
 
@@ -34,13 +34,70 @@
 extern "C" {
 #endif
 
+/* Get Properties Count  */
+int __tag_prop_count( struct hcml_tag_t * tag ) {
+    int _c;
+    struct hcml_prop_t * __prop;
+    _c = 0;
+    __prop = tag->p_root;
+    while ( __prop != NULL ) {
+        ++_c;
+        __prop = __prop->n_prop;
+    }
+    return _c;
+}
+
+/* Get child tag count */
+int __tag_child_count( struct hcml_tag_t * tag ) {
+    int _c;
+    struct hcml_tag_t * __tag;
+    _c = 0;
+    __tag = tag->c_tag;
+    while ( __tag != NULL ) {
+        ++_c;
+        __tag = __tag->n_tag;
+    }
+    return _c;
+}
+
+/* Get xth child */
+struct hcml_tag_t* __child_tag_at_index( struct hcml_tag_t * root_tag, int index ) {
+    int _c;
+    struct hcml_tag_t * __tag;
+    _c = 0;
+    __tag = root_tag->c_tag;
+    while ( _c != index && __tag != NULL ) {
+        ++_c;
+        __tag = __tag->n_tag;
+    }
+    return __tag;
+}
+
+/* Break sibling relation and generate code */
+int __bread_sibling_and_generate( hcml_node_t *h, struct hcml_tag_t *root_tag, int index, const char* suf ) {
+    int _c;
+    struct hcml_tag_t * __tag, * __sibling;
+    _c = 0;
+    __tag = root_tag;
+    while ( _c != index ) {
+        __tag = root_tag->n_tag;
+        ++_c;
+    }
+    __sibling = __tag->n_tag;
+    __tag->n_tag = NULL;
+    hcml_generate_cxx_lang(h, __tag, suf);
+    __tag->n_tag = __sibling;
+    return h->errcode;
+}
+
 /* Append Data to node result */
 int __append_code_data( hcml_node_t *h, const char *s, int l ) {
     if ( l == 0 ) { return 1; }
     while ( (h->bufsize - h->rsize) <= l ) {
         h->presult = (char *)realloc(h->presult, h->bufsize * 2);
         if ( h->presult == NULL ) {
-            __set_error__(h, HCML_ERR_ERBUFALLOC, "Malloc Error for Result Buffer");
+            hcml_set_error(h, HCML_ERR_ERBUFALLOC, 
+                "Malloc Error for Result Buffer");
             return 0;
         }
         h->bufsize *= 2;
@@ -67,7 +124,8 @@ int __append_code_format( hcml_node_t *h, const char *fmt, ... ) {
     while ( (h->bufsize - h->rsize) <= _append_len ) {
         h->presult = (char *)realloc(h->presult, h->bufsize * 2);
         if ( h->presult == NULL ) {
-            __set_error__(h, HCML_ERR_ERBUFALLOC, "Malloc Error for Result Buffer");
+            hcml_set_error(h, HCML_ERR_ERBUFALLOC, 
+                "Malloc Error for Result Buffer");
             return 0;
         }
         h->bufsize *= 2;
@@ -129,25 +187,15 @@ struct hcml_prop_t *__cxx_get_prop( struct hcml_tag_t *tag, const char* propname
 
 /* Generate binary operator */
 int __generate_cxx_binary_operator( hcml_node_t *h, struct hcml_tag_t *op_tag, const char* op ) {
-    struct hcml_tag_t *__ctag;
-    do {
-        if ( op_tag->c_tag == NULL || op_tag->c_tag->n_tag == NULL ) {
-            __set_error__(h, HCML_ERR_ESYNTAX, "Syntax Error, missing tag arround %s", op);
-            break;
-        }
-        /* Temperate Break */
-        __ctag = op_tag->c_tag->n_tag;
-        op_tag->c_tag->n_tag = NULL;
-
-        do {
-            if ( HCML_ERR_OK != __generate_cxx_lang(h, op_tag->c_tag, NULL)) break;
-            if ( !__append_code_format(h, " %s ", op) ) break;
-        } while ( 0 );
-        op_tag->c_tag->n_tag = __ctag;
-        if ( HCML_ERR_OK != h->errcode ) break;
-        if ( HCML_ERR_OK != __generate_cxx_lang(h, __ctag, NULL) ) break;
-    } while ( 0 );
-    return h->errcode;
+    if ( __tag_child_count(op_tag) != 2 ) {
+        hcml_set_error(h, HCML_ERR_ESYNTAX, 
+            "Syntax Error, missing tag arround %s", op);
+        return HCML_ERR_ESYNTAX;
+    }
+    if ( HCML_ERR_OK != __bread_sibling_and_generate(h, op_tag->c_tag, 0, NULL) ) return h->errcode;
+    if ( !__append_code_format(h, " %s ", op) ) return h->errcode;
+    if ( HCML_ERR_OK != __bread_sibling_and_generate(h, op_tag->c_tag, 1, NULL) ) return h->errcode;
+    return HCML_ERR_OK;
 }
 
 /* Generate Keyword tag */
@@ -164,26 +212,34 @@ int __generate_cxx_wrapper(
     do {
         if ( !__append_code_format(h, begin ) ) break;
         if ( root_tag->c_tag == NULL ) {
-            __set_error__(h, HCML_ERR_ESYNTAX, "Syntax Error, empty wrapper %s%s", begin, end);
+            hcml_set_error(h, HCML_ERR_ESYNTAX, 
+                "Syntax Error, empty wrapper %s%s", begin, end);
             break;
         }
-        if ( HCML_ERR_OK != __generate_cxx_lang(h, root_tag->c_tag, suf) ) break;
+        if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag, suf) ) break;
         if ( !__append_code_format(h, end) ) break;
     } while ( 0 );
     return h->errcode;
 }
 
 /* Genearte C++ Code according to the parsed tag */
-int __generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const char*suf ) {
-    struct hcml_prop_t * __prop;
-    struct hcml_tag_t *__ctag;
-
+int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const char*suf ) {
+    struct hcml_prop_t * __prop = NULL;
+    struct hcml_prop_t * __peol = NULL;
+    struct hcml_prop_t * __pgetval = NULL;
+    struct hcml_prop_t * __pgetaddr = NULL;
+    struct hcml_prop_t * __pgetref = NULL;
     do {
         if ( root_tag->is_tag == 0 ) {
             if ( !__append_code_format(h, "%s(\"", h->print_method) ) break;
             if ( !__append_pure_string(h, root_tag->data_string, root_tag->dl) ) break;
             if ( !__append_code_format(h, "\", %d);", root_tag->dl) ) break;
         } else {
+            __peol = __cxx_get_prop(root_tag, "eol");
+            __pgetval = __cxx_get_prop(root_tag, "val");
+            __pgetaddr = __cxx_get_prop(root_tag, "addr");
+            __pgetref = __cxx_get_prop(root_tag, "ref");
+
             if ( __cxx_is_tag(root_tag, "cxx:string") ) {
                 if ( !__append_code_format(h, "\"") ) break;
                 if ( root_tag->c_tag != NULL ) {
@@ -198,7 +254,8 @@ int __generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const char
                 if ( !__append_code_format(h, "\"") ) break;
             } else if ( __cxx_is_tag(root_tag, "cxx:const") ) {
                 if ( root_tag->c_tag == NULL ) {
-                    __set_error__(h, HCML_ERR_ESYNTAX, "Syntax Error, invalid const tag");
+                    hcml_set_error(h, HCML_ERR_ESYNTAX, 
+                        "Syntax Error, invalid const tag");
                     break;
                 }
                 if ( !__append_code_format(h, "%.*s", 
@@ -206,23 +263,46 @@ int __generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const char
                 ) {
                     break;
                 }
+            } else if ( __cxx_is_tag(root_tag, "cxx:empty") ) {
+                /* Do nothing for empty tag */
             } else if ( __cxx_is_tag(root_tag, "cxx:invoke") ) {
+                __prop = __cxx_get_prop(root_tag, "ptr");
+                if ( __prop != NULL ) {
+                    if ( !__append_code_format(h, "->") ) break;
+                } else {
+                    if ( !__append_code_format(h, ".") ) break;
+                }
                 __prop = __cxx_get_prop(root_tag, "name");
                 if ( __prop == NULL ) {
-                    __set_error__(h, HCML_ERR_ESYNTAX, "Syntax Error, missing function name for invoke.");
+                    hcml_set_error(h, HCML_ERR_ESYNTAX, 
+                        "Syntax Error, missing function name for invoke.");
                     break;
                 }
 
-                if ( !__append_code_format(h, ".%.*s(", __prop->vl, __prop->value) ) break;
+                if ( !__append_code_format(h, "%.*s(", __prop->vl, __prop->value) ) break;
                 if ( root_tag->c_tag != NULL ) {
-                    if ( HCML_ERR_OK != __generate_cxx_lang(h, root_tag->c_tag, ", ") ) break;
+                    if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag, ", ") ) break;
+                    h->rsize -= 2;
+                }
+                if ( !__append_code_format(h, ")" ) ) break;
+            } else if ( __cxx_is_tag(root_tag, "cxx:call") ) {
+                __prop = __cxx_get_prop(root_tag, "name");
+                if ( __prop == NULL ) {
+                    hcml_set_error(h, HCML_ERR_ESYNTAX, 
+                        "Syntax Error, missing function name for call.");
+                    break;
+                }
+
+                if ( !__append_code_format(h, "%.*s(", __prop->vl, __prop->value) ) break;
+                if ( root_tag->c_tag != NULL ) {
+                    if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag, ", ") ) break;
                     h->rsize -= 2;
                 }
                 if ( !__append_code_format(h, ")" ) ) break;
             } else if ( __cxx_is_tag(root_tag, "cxx:list") ) {
                 if ( !__append_code_format(h, "{") ) break;
                 if ( root_tag->c_tag != NULL ) {
-                    if ( HCML_ERR_OK != __generate_cxx_lang(h, root_tag->c_tag, ", ") ) break;
+                    if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag, ", ") ) break;
                     h->rsize -= 2;
                 }
                 if ( !__append_code_format(h, "}" ) ) break;
@@ -233,16 +313,24 @@ int __generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const char
                 }
                 __prop = __cxx_get_prop(root_tag, "name");
                 if ( __prop == NULL ) {
-                    __set_error__(h, HCML_ERR_ESYNTAX, "Syntax Error, missing variable name for var.");
+                    hcml_set_error(h, HCML_ERR_ESYNTAX, 
+                        "Syntax Error, missing variable name for var.");
                     break;
                 }
-                if ( !__append_code_format(h, "%.*s", __prop->vl, __prop->value) ) break;
+                if ( __pgetval != NULL ) {
+                    if ( !__append_code_format(h, "(*%.*s)", __prop->vl, __prop->value) ) break;
+                } else if ( __pgetaddr != NULL || __pgetref != NULL ) {
+                    if ( !__append_code_format(h, "(&%.*s)", __prop->vl, __prop->value) ) break;
+                } else {
+                    if ( !__append_code_format(h, "%.*s", __prop->vl, __prop->value) ) break;
+                }
                 if ( root_tag->c_tag != NULL ) {
-                    if ( HCML_ERR_OK != __generate_cxx_lang(h, root_tag->c_tag, NULL) ) break;
+                    if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag, NULL) ) break;
                 }
             } else if ( __cxx_is_tag(root_tag, "cxx:code") ) {
                 if ( root_tag->c_tag == NULL ) {
-                    __set_error__(h, HCML_ERR_ESYNTAX, "Syntax Error, invalid code tag");
+                    hcml_set_error(h, HCML_ERR_ESYNTAX, 
+                        "Syntax Error, invalid code tag");
                     break;
                 }
                 if ( !__append_code_format(h, "%.*s", 
@@ -252,16 +340,17 @@ int __generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const char
                 }
             } else if ( __cxx_is_tag(root_tag, "cxx:line") ) {
                 if ( root_tag->c_tag != NULL ) {
-                    if ( HCML_ERR_OK != __generate_cxx_lang(h, root_tag->c_tag, NULL) ) break;
+                    if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag, NULL) ) break;
                 }
                 if ( !__append_code_format(h, ";") ) break;
             } else if ( __cxx_is_tag(root_tag, "cxx:print")) {
                 if ( !__append_code_format(h, "%s(", h->print_method) ) break;
                 if ( root_tag->c_tag == NULL ) {
-                    __set_error__(h, HCML_ERR_ESYNTAX, "Syntax Error: Empty print is not allowed");
+                    hcml_set_error(h, HCML_ERR_ESYNTAX, 
+                        "Syntax Error: Empty print is not allowed");
                     break;
                 }
-                if ( HCML_ERR_OK != __generate_cxx_lang(h, root_tag->c_tag, NULL) ) break;
+                if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag, NULL) ) break;
                 if ( !__append_code_format(h, ");") ) break;
             } else if ( __cxx_is_tag(root_tag, "cxx:subscript") ) {
                 if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "[", "]", NULL) ) break;
@@ -269,9 +358,16 @@ int __generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const char
                 if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "{\n", "}", "\n") ) break;
             } else if ( __cxx_is_tag(root_tag, "cxx:parentheses") ) {
                 if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "(", ")", NULL) ) break;
+            } else if ( __cxx_is_tag(root_tag, "cxx:post_increase") ) {
+                if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "(", ")++", NULL) ) break;
+            } else if ( __cxx_is_tag(root_tag, "cxx:pre_increase") ) {
+                if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "++(", ")", NULL) ) break;
+            } else if ( __cxx_is_tag(root_tag, "cxx:post_decrease") ) {
+                if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "(", ")--", NULL) ) break;
+            } else if ( __cxx_is_tag(root_tag, "cxx:pre_decrease") ) {
+                if ( HCML_ERR_OK != __generate_cxx_wrapper(h, root_tag, "--(", ")", NULL) ) break;
             } else if ( __cxx_is_tag(root_tag, "cxx:set") ) {
                 if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, "=") ) break;
-                if ( !__append_code_format(h, ";") ) break;
             } else if ( __cxx_is_tag(root_tag, "cxx:great") ) {
                 if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, ">") ) break;
             } else if ( __cxx_is_tag(root_tag, "cxx:greatequal") ) {
@@ -311,30 +407,33 @@ int __generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const char
             } else if ( __cxx_is_tag(root_tag, "cxx:typeinit") ) {
                 __prop = __cxx_get_prop(root_tag, "type");
                 if ( __prop == NULL ) {
-                    __set_error__(h, HCML_ERR_ESYNTAX, "Syntax Error, missing type name for type init.");
+                    hcml_set_error(h, HCML_ERR_ESYNTAX, 
+                        "Syntax Error, missing type name for type init.");
                     break;
                 }
 
                 if ( !__append_code_format(h, "%.*s(", __prop->vl, __prop->value) ) break;
                 if ( root_tag->c_tag != NULL ) {
-                    if ( HCML_ERR_OK != __generate_cxx_lang(h, root_tag->c_tag, ", ") ) break;
+                    if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag, ", ") ) break;
                     h->rsize -= 2;
                 }
                 if ( !__append_code_format(h, ")" ) ) break;
             } else if ( __cxx_is_tag(root_tag, "cxx:condition") ) {
                 if ( root_tag->c_tag == NULL ) {
-                    __set_error__(h, HCML_ERR_ESYNTAX, "Syntax Error: invalidate condition, missing case");
+                    hcml_set_error(h, HCML_ERR_ESYNTAX, 
+                        "Syntax Error: invalidate condition, missing case");
                     break;
                 }
                 if ( !__cxx_is_tag(root_tag->c_tag, "cxx:case") ) {
-                    __set_error__(h, HCML_ERR_ESYNTAX, 
+                    hcml_set_error(h, HCML_ERR_ESYNTAX, 
                         "Syntax Error: invalidate condition, first child must be case");
                     break;
                 }
-                if ( HCML_ERR_OK != __generate_cxx_lang(h, root_tag->c_tag, NULL) ) break;
+                if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag, NULL) ) break;
             } else if ( __cxx_is_tag(root_tag, "cxx:case") ) {
                 if ( root_tag->f_tag == NULL ) {
-                    __set_error__(h, HCML_ERR_ESYNTAX, "Syntax Error: cannot use case individual");
+                    hcml_set_error(h, HCML_ERR_ESYNTAX, 
+                        "Syntax Error: cannot use case individual");
                     break;
                 }
                 /* First Case */
@@ -343,81 +442,98 @@ int __generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const char
                 } else {
                     if ( !__append_code_format(h, "else if ( ") ) break;
                 }
-                if ( root_tag->c_tag == NULL ) {
-                    __set_error__(h, HCML_ERR_ESYNTAX, 
-                        "Syntax Error: case at least need have one child node");
+                if ( __tag_child_count(root_tag) < 2 ) {
+                    hcml_set_error(h, HCML_ERR_ESYNTAX, 
+                        "Syntax Error: case at least need have two child node");
                     break;
                 }
                 /* Temperate break the relation */
-                __ctag = root_tag->c_tag->n_tag;
-                root_tag->c_tag->n_tag = NULL;
-                if ( HCML_ERR_OK != __generate_cxx_lang(h, root_tag->c_tag, NULL) ) {
-                    root_tag->c_tag->n_tag = __ctag;
+                if ( HCML_ERR_OK != __bread_sibling_and_generate(h, root_tag->c_tag, 0, NULL) )
                     break;
-                }
-                /* Rebuild the relation */
-                root_tag->c_tag->n_tag = __ctag;
                 if ( !__append_code_format(h, " ) ") ) break;
-                if ( __ctag != NULL ) {
-                    if ( HCML_ERR_OK != __generate_cxx_lang(h, __ctag, NULL) ) break;
-                }
+                if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag->n_tag, NULL) ) break;
             } else if ( __cxx_is_tag(root_tag, "cxx:else") ) {
                 if ( root_tag->f_tag == NULL ) {
-                    __set_error__(h, HCML_ERR_ESYNTAX, "Syntax Error: cannot use else individual");
+                    hcml_set_error(h, HCML_ERR_ESYNTAX, 
+                        "Syntax Error: cannot use else individual");
                     break;
                 }
                 if ( !__append_code_format(h, "else ") ) break;
                 if ( root_tag->c_tag == NULL ) {
-                    __set_error__(h, HCML_ERR_ESYNTAX, "Syntax Error: empty else is not allowed");
+                    hcml_set_error(h, HCML_ERR_ESYNTAX, 
+                        "Syntax Error: empty else is not allowed");
                     break;
                 }
-                if ( HCML_ERR_OK != __generate_cxx_lang(h, root_tag->c_tag, "\n") ) break;
+                if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag, "\n") ) break;
             } else if ( __cxx_is_tag(root_tag, "cxx:each") ) {
-                if ( root_tag->c_tag == NULL ) {
-                    __set_error__(h, HCML_ERR_ESYNTAX, "Syntax Error: each must have 3 child node");
-                    break;
-                }
-                __ctag = root_tag->c_tag->n_tag;
-                if ( __ctag == NULL ) {
-                    __set_error__(h, HCML_ERR_ESYNTAX, "Syntax Error: each must have 3 child node");
-                    break;
-                }
-                __ctag = __ctag->n_tag;
-                if ( __ctag == NULL ) {
-                    __set_error__(h, HCML_ERR_ESYNTAX, "Syntax Error: each must have 3 child node");
-                    break;
-                }
-                if ( __ctag->n_tag != NULL ) {
-                    __set_error__(h, HCML_ERR_ESYNTAX, "Syntax Error: each must have 3 child node");
+                if ( __tag_child_count(root_tag) < 3 ) {
+                    hcml_set_error(h, HCML_ERR_ESYNTAX, 
+                        "Syntax Error: each must have at least 3 child node");
                     break;
                 }
 
                 if ( !__append_code_format(h, "for (") ) break;
-
-                __ctag = root_tag->c_tag->n_tag;
-                root_tag->c_tag->n_tag = NULL;
-                __generate_cxx_lang(h, root_tag->c_tag, NULL);
-                root_tag->c_tag->n_tag = __ctag;
-                if ( h->errcode != HCML_ERR_OK ) break;
-
+                if ( HCML_ERR_OK != __bread_sibling_and_generate(h, root_tag->c_tag, 0, NULL) ) break;
                 if ( !__append_code_format(h, " : ") ) break;
-                __ctag = root_tag->c_tag->n_tag->n_tag;
-                root_tag->c_tag->n_tag->n_tag = NULL;
-                __generate_cxx_lang(h, root_tag->c_tag->n_tag, NULL);
-                root_tag->c_tag->n_tag->n_tag = __ctag;
-                if ( HCML_ERR_OK != h->errcode ) break;
-
+                if ( HCML_ERR_OK != __bread_sibling_and_generate(h, root_tag->c_tag, 1, NULL) ) break;
                 if ( !__append_code_format(h, ")") ) break;
 
-                if ( HCML_ERR_OK != __generate_cxx_lang(h, __ctag, NULL) ) break;
+                /* All node from 3rd will be formateed as the loop body */
+                if ( HCML_ERR_OK != hcml_generate_cxx_lang(
+                    h, __child_tag_at_index(root_tag, 2), NULL) ) break;
+            } else if ( __cxx_is_tag(root_tag, "cxx:for") ) {
+                if ( __tag_child_count(root_tag) < 4 ) {
+                    hcml_set_error(h, HCML_ERR_ESYNTAX, 
+                        "Syntax Error: for must have at least 4 child node");
+                    break;
+                }
+
+                if ( !__append_code_format(h, "for (") ) break;
+                if ( HCML_ERR_OK != __bread_sibling_and_generate(h, root_tag->c_tag, 0, NULL) ) break;
+                if ( !__append_code_format(h, "; ") ) break;
+                if ( HCML_ERR_OK != __bread_sibling_and_generate(h, root_tag->c_tag, 1, NULL) ) break;
+                if ( !__append_code_format(h, "; ") ) break;
+                if ( HCML_ERR_OK != __bread_sibling_and_generate(h, root_tag->c_tag, 2, NULL) ) break;
+                if ( !__append_code_format(h, ") ") ) break;
+                if ( HCML_ERR_OK != hcml_generate_cxx_lang(
+                    h, __child_tag_at_index(root_tag, 3), NULL) ) 
+                    break;
+            } else if ( __cxx_is_tag(root_tag, "cxx:while") ) {
+                if ( __tag_child_count(root_tag) < 2 ) {
+                    hcml_set_error(h, HCML_ERR_ESYNTAX, 
+                        "Syntax Error: while must have at least 2 child node");
+                    break;
+                }
+                if ( !__append_code_format(h, "while (") ) break;
+                if ( HCML_ERR_OK != __bread_sibling_and_generate(h, root_tag->c_tag, 0, NULL) ) break;
+                if ( !__append_code_format(h, ") ") ) break;
+                if ( HCML_ERR_OK != hcml_generate_cxx_lang(
+                    h, __child_tag_at_index(root_tag, 1), NULL) )
+                    break;
+            } else if ( __cxx_is_tag(root_tag, "cxx:do") ) {
+                if ( __tag_child_count(root_tag) < 2 ) {
+                    hcml_set_error(h, HCML_ERR_ESYNTAX, 
+                        "Syntax Error: while must have at least 2 child node");
+                    break;
+                }
+                if ( !__append_code_format(h, "do ") ) break;
+                if ( HCML_ERR_OK != hcml_generate_cxx_lang(
+                    h, __child_tag_at_index(root_tag, 1), NULL) )
+                    break;
+                if ( !__append_code_format(h, " while (") ) break;
+                if ( HCML_ERR_OK != __bread_sibling_and_generate(h, root_tag->c_tag, 0, NULL) ) break;
+                if ( !__append_code_format(h, ");") ) break;
             }
+        }
+        if ( __peol != NULL ) {
+            if ( !__append_code_format(h, ";") ) break;
         }
         if ( suf != NULL ) {
             if ( !__append_code_format(h, "%s", suf) ) 
                 break;
         }
         if ( root_tag->n_tag != NULL ) {
-            if ( HCML_ERR_OK != __generate_cxx_lang(h, root_tag->n_tag, suf) )
+            if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->n_tag, suf) )
                 break;
         }
     } while ( 0 );
@@ -429,6 +545,6 @@ int __generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const char
 #endif
 
 /*
-    __hcml_def.h__
+    __hcml_cxx.c__
     Push Chen
 */

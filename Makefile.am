@@ -7,10 +7,12 @@ AM_CXXFLAGS = \
 lib_LTLIBRARIES = libhcml.la
 libhcml_la_SOURCES = \
 	hcml.c \
-	hcml_def.c
+	hcml_cxx.c
 
 include_HEADERS = \
 	hcml.h \
+	hcml_def.h \
+	hcml_cxx.h \
 	hcml.hpp
 
 bin_PROGRAMS = hcmlt

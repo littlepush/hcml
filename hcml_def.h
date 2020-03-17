@@ -33,8 +33,6 @@
 #ifndef HCML_HCML_DEF_H_DEF_
 #define HCML_HCML_DEF_H_DEF_
 
-#include "hcml.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -60,6 +58,8 @@ typedef struct {
     int                         lang_prefix_l;
     /* Parsing Line */
     int                         line;
+    /* Language Generator Function Point */
+    void                        *langfp;
 } hcml_node_t;
 
 /* Tag Property Node */
@@ -86,32 +86,8 @@ struct hcml_tag_t {
     struct hcml_tag_t       *f_tag;
 };
 
-/* Create and init a new prop node */
-struct hcml_prop_t * __malloc_prop( const char * key, int kl );
-
-/* Set the prop's value */
-void __set_prop_value( struct hcml_prop_t * p, const char * value, int vl );
-
-/* Free a property node and all it's siblings */
-void __free_prop( struct hcml_prop_t * p );
-
-/* Create and init a new tag node */
-struct hcml_tag_t * __malloc_tag( const char * key, int kl );
-
-/* Create and init a string tag node */
-struct hcml_tag_t * __malloc_string( const char * value, int vl );
-
-/* Free a tag node, and all it's properies and children and siblings */
-void __free_tag( struct hcml_tag_t * t );
-
-/* Set the error message */
-void __set_error__( hcml_node_t *h, int eno, const char * fmt, ... );
-
-/* Dump debug structure info */
-void __dump_tag( struct hcml_tag_t * root, int lv );
-
-/* Genearte C++ Code according to the parsed tag */
-int __generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const char*suf );
+/* Function Point to generate final code */
+typedef int (*hcml_lang_generator)( hcml_node_t *, struct hcml_tag_t*, const char*);
 
 #ifdef __cplusplus
 }

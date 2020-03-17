@@ -15,3 +15,38 @@
         </div>
     </cxx:block>
 </cxx:each>
+
+<cxx:for>
+    <cxx:set>
+        <cxx:var name="_it" type="auto&"></cxx:var>
+        <cxx:var name="_jdata">
+            <cxx:invoke name="begin"></cxx:invoke>
+        </cxx:var>
+    </cxx:set>
+    <cxx:notequal>
+        <cxx:var name="_it"></cxx:var>
+        <cxx:var name="_jdata"><cxx:invoke name="end"></cxx:invoke></cxx:var>
+    </cxx:notequal>
+    <cxx:pre_increase><cxx:var name="_it"></cxx:var></cxx:pre_increase>
+    <cxx:block>
+        <cxx:set eol>
+            <cxx:var name="_u" type="auto"></cxx:var>
+            <cxx:call name="dhboc::redis::get_object">
+                <cxx:string>admin</cxx:string>
+                <cxx:var name="_it" val>
+                    <cxx:subscript><cxx:string>poster</cxx:string></cxx:subscript>
+                    <cxx:invoke name="asString"></cxx:invoke>
+                </cxx:var>
+            </cxx:call>
+        </cxx:set>
+        <cxx:code>
+        (*_it)["poster"] = _u["name"];
+        (*_it)["create_time"] = dhboc_time_string((*_it)["create_time"].asString());
+        (*_it)["update_time"] = dhboc_time_string((*_it)["update_time"].asString());
+
+        Json::Value _price;
+        json_cpp_reader((*_it)["price"].asString(), _price);
+        (*_it)["price"] = _price;
+        </cxx:code>
+    </cxx:block>
+</cxx:for>

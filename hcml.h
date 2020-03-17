@@ -36,9 +36,9 @@
 #include <stdio.h>
 
 /* Version 0.1 */
-#define HCML_VERSION                0x00000001
+#define HCML_VERSION                0x00000002
 #ifndef PACKAGE_VERSION
-#define HCML_VERSION_STRING         "0.1"
+#define HCML_VERSION_STRING         "0.2"
 #else
 #define HCML_VERSION_STRING         PACKAGE_VERSION
 #endif
@@ -90,6 +90,9 @@
 #include <sys/stat.h>
 #include <stdarg.h>
 
+#include <hcml_def.h>
+#include <hcml_cxx.h>
+
 #define HCML_ERR_INVALIDATE_SRCPATH     -2  /* Invalidate Input source path */
 #define HCML_ERR_INVALIDATE_HANDLER     -1  /* Invalidate hcml handler */
 #define HCML_ERR_OK                     0   /* No Error */
@@ -137,6 +140,11 @@ const char * hcml_get_errstr( hcml_t h );
  */
 int hcml_get_errno( hcml_t h );
 
+/*
+    Set error code and message
+ */
+void hcml_set_error( hcml_t h, int code, const char * msgfmt, ... );
+
 /* 
     Get the output size 
  */
@@ -153,14 +161,18 @@ void hcml_set_print_method( hcml_t h, const char* method );
 const char * hcml_get_print_method( hcml_t h );
 
 /*
-    Set the language prefix, default is "cxx"
+    Set the language prefix, default is "cxx" and return the old
  */
+hcml_lang_generator hcml_set_lang_generator( hcml_t h, hcml_lang_generator fp );
 
 void hcml_set_lang_prefix( hcml_t h, const char * prefix );
 /*
     Get the language prefix
  */
 const char * hcml_get_lang_prefix( hcml_t h );
+
+/* Dump debug structure info */
+void hcml_dump_tag( struct hcml_tag_t * root, int lv );
 
 /*
     Parse the input file and output to a dynamically allocated memory
