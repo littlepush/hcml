@@ -101,6 +101,7 @@
 #define HCML_ERR_ERBUFALLOC             6   /* Malloc Error for Result Buffer */
 #define HCML_ERR_EPRINT                 7   /* Invalidate Print Method */
 #define HCML_ERR_EPARSE                 8   /* Pasre error, see message for deatil */
+#define HCML_ERR_ESYNTAX                9   /* Syntax Error, see message for deatil */
 
 #ifdef __cplusplus
 extern "C" {
@@ -149,7 +150,7 @@ void hcml_set_print_method( hcml_t h, const char* method );
 /*
     Get the static string print method
 */
-const char * hcml_get_print_methoc( hcml_t h );
+const char * hcml_get_print_method( hcml_t h );
 
 /*
     Set the language prefix, default is "cxx"

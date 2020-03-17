@@ -1,26 +1,31 @@
 <cxx:condition>
     <cxx:case>
         <cxx:code>req.cookie.contains("__token__")</cxx:code>
-        <cxx:code>std::string _t = req.cookie.get_cookie_value("__token__")</cxx:code>
-        <cxx:condition>
-            <cxx:great>
-                <cxx:var name="_t"><cxx:invoke name="size"></cxx:invoke></cxx:var>
-                <cxx:const>0</cxx:const>
-            </cxx:great>
-            <cxx:set>
-                <cxx:var name="resp.status_code"></cxx:var>
-                <cxx:const>CODE_302</cxx:const>
-            </cxx:set>
-            <cxx:set>
-                <cxx:var name="resp.header">
-                    <cxx:subscript><cxx:string>Location</cxx:string></cxx:subscript>
-                </cxx:var>
-                <cxx:string>/index.html</cxx:string>
-            </cxx:set>
-            <cxx:return></cxx:return>
-        </cxx:condition>
+        <cxx:block>
+            <cxx:code>std::string _t = req.cookie.get_cookie_value("__token__");</cxx:code>
+            <cxx:condition>
+                <cxx:case>
+                    <cxx:great>
+                        <cxx:var name="_t"><cxx:invoke name="size"></cxx:invoke></cxx:var>
+                        <cxx:const>0</cxx:const>
+                    </cxx:great>
+                    <cxx:block>
+                        <cxx:set>
+                            <cxx:var name="resp.status_code"></cxx:var>
+                            <cxx:const>CODE_302</cxx:const>
+                        </cxx:set>
+                        <cxx:set>
+                            <cxx:var name="resp.header">
+                                <cxx:subscript><cxx:string>Location</cxx:string></cxx:subscript>
+                            </cxx:var>
+                            <cxx:string>/index.html</cxx:string>
+                        </cxx:set>
+                        <cxx:return></cxx:return>
+                    </cxx:block>
+                </cxx:case>
+            </cxx:condition>
+        </cxx:block>
     </cxx:case>
-    <cxx:else>Yes</cxx:else>
 </cxx:condition>
 <html lang="en">
     <head>
@@ -78,11 +83,13 @@
                 </div>
               </div>
             </div>
-            <cxx:var name="resp.body">
-                <cxx:invoke name="load_file">
-                    <cxx:string>_static/parts/footer.part</cxx:string>
-                </cxx:invoke>
-            </cxx:var>
+            <cxx:line>
+                <cxx:var name="resp.body">
+                    <cxx:invoke name="load_file">
+                        <cxx:string>_static/parts/footer.part</cxx:string>
+                    </cxx:invoke>
+                </cxx:var>
+            </cxx:line>
         </div>
     </body>
 

@@ -111,7 +111,7 @@ void __set_error__( hcml_node_t *h, int eno, const char * fmt, ... );
 void __dump_tag( struct hcml_tag_t * root, int lv );
 
 /* Genearte C++ Code according to the parsed tag */
-void __generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag );
+int __generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const char*suf );
 
 #ifdef __cplusplus
 }

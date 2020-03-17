@@ -47,7 +47,7 @@ struct hcml_tag_t * __append_tag(
             if ( current_tag->c_tag != NULL ) {
                 /* Which will never happen */
                 __set_error__(h, HCML_ERR_EPARSE, 
-                    "Syntax Error, UnFormated tag at line: %d", h->line);
+                    "Parse Error, UnFormated tag at line: %d", h->line);
                 __free_tag(new_tag);
                 return NULL;
             }
@@ -63,7 +63,7 @@ struct hcml_tag_t * __append_tag(
 
 #define __CHK_LEFT_NOT_ZERO__(...)                                      \
     if ( __rleft == 0 ) { __set_error__(h, HCML_ERR_EPARSE,             \
-        "Syntax Error: invalidate tag at line: %d", h->line);           \
+        "Parse Error: invalidate tag at line: %d", h->line);           \
         __VA_ARGS__; break; }
 
 
@@ -87,11 +87,11 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
 
     while ( __rindex < rbufl ) {
         /* All String */
-        while ( __rleft != 0 && rbuf[__rindex] != '<' ) {
+        while ( __rleft != 0 && rbuf[__rindex] != '<' && rbuf[__rindex] != '\0' ) {
             if ( rbuf[__rindex] == '\n' ) { ++h->line; }
             ++__rindex; --__rleft;
         }
-        if ( __rleft == 0 ) {
+        if ( __rleft == 0 || rbuf[__rindex] == '\0' ) {
             /* End of source */
             if ( (rbuf + __rindex - __saved_begin) == 0 ) break;
             /* All string */
@@ -150,7 +150,7 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
                         }
                     } else {
                         __set_error__(h, HCML_ERR_EPARSE,
-                            "Syntax Error: missing end tag of %s, line: %d", 
+                            "Parse Error: missing end tag of %s, line: %d", 
                             __current_tag->data_string, h->line);
                         break;
                     }
@@ -196,7 +196,7 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
                             }
                         } else {
                             __set_error__(h, HCML_ERR_EPARSE,
-                                "Syntax Error: missing end tag of %.*s, line: %d", 
+                                "Parse Error: missing end tag of %.*s, line: %d", 
                                 __current_tag->dl,
                                 __current_tag->data_string, h->line);
                             break;
@@ -253,7 +253,7 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
                     __CHK_LEFT_NOT_ZERO__(__flag = 1)
                     if ( rbuf[__rindex] == '/' ) {
                         __set_error__(h, HCML_ERR_EPARSE, 
-                            "Syntax Error: inline tag not supported, at line: %d", h->line);
+                            "Parse Error: inline tag not supported, at line: %d", h->line);
                         __flag = 1;
                         break;
                     }
@@ -282,14 +282,14 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
                             } else {
                                 /* Error */
                                 __set_error__(h, HCML_ERR_EPARSE,
-                                    "Syntax Error: invalidate property at line: %d", h->line);
+                                    "Parse Error: invalidate property at line: %d", h->line);
                                 __flag = 1;
                                 break;
                             }
                         } else {
                             if ( rbuf[__rindex + 1] != '\"' ) {
                                 __set_error__(h, HCML_ERR_EPARSE,
-                                    "Syntax Error: missing \" at line: %d", h->line);
+                                    "Parse Error: missing \" at line: %d", h->line);
                                 __flag = 1;
                                 break;
                             }
@@ -312,7 +312,9 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
                             if ( __flag != 0 ) break;
                             /* Save last '"' */
                             ++__rindex; --__rleft;
-                            __set_prop_value(__temp_prop, __saved_begin, rbuf + __rindex - __saved_begin);
+                            /* Set prop value withouth '"' */
+                            __set_prop_value(__temp_prop, __saved_begin + 1, 
+                                rbuf + __rindex - __saved_begin - 2);
                         }
                         if ( __current_tag->p_root == NULL ) {
                             __current_tag->p_root = __temp_prop;
@@ -349,7 +351,7 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
     }
 
     __dump_tag( __root_tag, 0 );
-    __generate_cxx_lang( h, __root_tag );
+    __generate_cxx_lang( h, __root_tag, "\n" );
     __free_tag( __root_tag );
 }
 
@@ -425,7 +427,7 @@ void hcml_set_print_method( hcml_t h, const char* method ) {
 /*
     Get the static string print method
 */
-const char* hcml_get_print_methoc( hcml_t h ) {
+const char* hcml_get_print_method( hcml_t h ) {
     return ((hcml_node_t *)h)->print_method;
 }
 
@@ -456,6 +458,7 @@ int hcml_parse( hcml_t h, const char * src_path ) {
     hcml_node_t *_h; /* Handler */
     char *__sbuf; /* Source Code Reading Buffer */
     int __fdsrc; /* source file handler */
+    int __fsize;
     const char *__src_path; /* Temp source path if we need to guess the input language */
     struct stat __fstat;
 
@@ -494,7 +497,7 @@ int hcml_parse( hcml_t h, const char * src_path ) {
             break;
         }
         /* Read the whole source code into memory */
-        read( __fdsrc, __sbuf, __fstat.st_size );
+        __fsize = read( __fdsrc, __sbuf, __fstat.st_size );
 
         /* Init Output buffer 1KB */
         if ( _h->bufsize == 0 && _h->presult != NULL ) {
@@ -519,7 +522,7 @@ int hcml_parse( hcml_t h, const char * src_path ) {
             break;
         }
         /* Internal Paser Call */
-        __parse_hcml__(_h, __sbuf, __fstat.st_size);
+        __parse_hcml__(_h, __sbuf, __fsize);
     } while ( 0 );
 
     /* Close source file handler */
