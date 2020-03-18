@@ -82,6 +82,9 @@ struct hcml_tag_t {
     /* When is tag, the name after cxx: */
     const char              *data_string;
     int                     dl;
+
+    /* Begin Line Number */
+    int                     bline;
     struct hcml_prop_t      *p_root;
     struct hcml_tag_t       *c_tag;
     struct hcml_tag_t       *n_tag;

@@ -205,10 +205,11 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
                 /* This is the language tag */
 
                 if ( __current_tag != NULL && __current_tag->is_tag == 1 ) {
+                    /* Yes, im a tag */
                     if ( __current_tag->is_ended == 0 ) {
                         /* Yes, we are in a tag's content, and it's not ended yet,
                         1 for '<', 1 for current '/', 1 for the '>' after the tag name */
-                        if ( __current_tag->dl < (__rleft - (2 + h->lang_prefix_l + 1)) ) {
+                        if ( __current_tag->dl <= (__rleft - (2 + h->lang_prefix_l + 1)) ) {
                             /* Yes, we still have enough pending data to read */
                             if ( strncmp(
                                 rbuf + __rindex + 2 + h->lang_prefix_l + 1, 
@@ -241,11 +242,14 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
                                 __saved_begin = (rbuf + __rindex);
                                 continue;
                             } else {
-                                /* This may be not cxx tag, can be an html end tag */
-                                /* Skip current </ */
-                                __rindex += 2; 
-                                __rleft -= 2;
-                                continue;
+                                __set_error__(h, HCML_ERR_EPARSE,
+                                    "Parse Error: Invalidate end tag, mismatch with current unclose: "
+                                    "%.*s begtin at line: %d, line: %d", 
+                                    __current_tag->dl,
+                                    __current_tag->data_string, 
+                                    __current_tag->bline, 
+                                    h->line);
+                                break;
                             }
                         } else {
                             __set_error__(h, HCML_ERR_EPARSE,
@@ -298,17 +302,26 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
                                 }
                             } else {
                                 __set_error__(h, HCML_ERR_EPARSE,
-                                    "Parse Error: missing end tag of %.*s, line: %d", 
-                                    __current_tag->dl,
-                                    __current_tag->data_string, h->line);
+                                    "Parse Error: Invalidate end tag, mismatch with current unclose: "
+                                    "%.*s begtin at line: %d, line: %d", 
+                                    __current_tag->f_tag->dl,
+                                    __current_tag->f_tag->data_string, 
+                                    __current_tag->f_tag->bline, 
+                                    h->line);
                                 break;
                             }
                         } else {
-                            // We are still in string tag, not need to end now
-                            ++__rindex; --__rleft;
-                            continue;
+                            __set_error__(h, HCML_ERR_EPARSE,
+                                "Parse Error: Invalidate end tag, no begin tag, line: %d", h->line);
+                            break;
                         }
                     }
+                } else {
+                    /* NO, im not a tag, but we find an end-tag, basically speaking, 
+                    only happended when write an end-tag at the beginning of the file */
+                    __set_error__(h, HCML_ERR_EPARSE,
+                        "Parse Error: Invalidate end tag, no begin tag, line: %d", h->line);
+                    break;
                 }
             } else {
                 // We are still in string tag, not need to end now
@@ -348,6 +361,7 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
                 __CHK_LEFT_NOT_ZERO__()
                 __temp_tag = __malloc_tag( __saved_begin + h->lang_prefix_l + 1, 
                     (rbuf + __rindex - __saved_begin - h->lang_prefix_l - 1) );
+                __temp_tag->bline = h->line;
                 if ( __root_tag == NULL ) __root_tag = __temp_tag;
                 __current_tag = __append_tag(h, __current_tag, __temp_tag);
                 if ( __current_tag == NULL ) break;
