@@ -144,6 +144,7 @@ int __generate_cxx_wrapper(
 int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const char*suf ) {
     struct hcml_prop_t * __prop = NULL;
     struct hcml_prop_t * __peol = NULL;
+    struct hcml_prop_t * __presult = NULL;
     struct hcml_prop_t * __pgetval = NULL;
     struct hcml_prop_t * __pgetaddr = NULL;
     struct hcml_prop_t * __pgetref = NULL;
@@ -213,8 +214,9 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                     break;
                 }
 
-                if ( __pgetval != NULL ) {
-                    if ( !hcml_append_code_format(h, "auto %.*s = ", __pgetval->vl, __pgetval->value) ) 
+                __presult = __cxx_get_prop(root_tag, "result");
+                if ( __presult != NULL ) {
+                    if ( !hcml_append_code_format(h, "auto %.*s = ", __presult->vl, __presult->value) ) 
                         break;
                 }
 
@@ -225,7 +227,7 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                 }
                 if ( !hcml_append_code_format(h, ")" ) ) break;
 
-                if ( __pgetval != NULL && __peol == NULL ) {
+                if ( __presult != NULL && __peol == NULL ) {
                     if ( !hcml_append_code_format(h, ";") ) break;
                 }
 
