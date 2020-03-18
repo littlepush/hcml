@@ -165,6 +165,9 @@ void __parse_hcml__( hcml_node_t *h, const char *rbuf, int rbufl ) {
     const char *__saved_begin;
     int __flag;
 
+    // Empty Content
+    if ( rbufl == 0 ) return;
+
     __flag = 0;
     __rindex = 0;
     __rleft = rbufl;
