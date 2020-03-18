@@ -213,12 +213,22 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
                     break;
                 }
 
+                if ( __pgetval != NULL ) {
+                    if ( !hcml_append_code_format(h, "auto %.*s = ", __pgetval->vl, __pgetval->value) ) 
+                        break;
+                }
+
                 if ( !hcml_append_code_format(h, "%.*s(", __prop->vl, __prop->value) ) break;
                 if ( root_tag->c_tag != NULL ) {
                     if ( HCML_ERR_OK != hcml_generate_cxx_lang(h, root_tag->c_tag, ", ") ) break;
                     h->rsize -= 2;
                 }
                 if ( !hcml_append_code_format(h, ")" ) ) break;
+
+                if ( __pgetval != NULL && __peol == NULL ) {
+                    if ( !hcml_append_code_format(h, ";") ) break;
+                }
+
             } else if ( __cxx_is_tag(root_tag, "list") ) {
                 if ( !hcml_append_code_format(h, "{") ) break;
                 if ( root_tag->c_tag != NULL ) {
