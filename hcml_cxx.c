@@ -116,6 +116,23 @@ int __generate_cxx_binary_operator( hcml_node_t *h, struct hcml_tag_t *op_tag, c
     return HCML_ERR_OK;
 }
 
+/* Generate continues operator */
+int __generate_cxx_self_return_operator( hcml_node_t *h, struct hcml_tag_t *op_tag, const char *op ) {
+    int _i = 0;
+    int _cc = __tag_child_count(op_tag);
+    if ( _cc <= 1 ) {
+        hcml_set_error(h, HCML_ERR_ESYNTAX, 
+            "Syntax Error, at least 2 child nodes in %.*s", 
+            op_tag->dl, op_tag->data_string);
+        return HCML_ERR_ESYNTAX;
+    }
+    for ( ; _i < (_cc - 1); ++_i ) {
+        if ( HCML_ERR_OK != __break_sibling_and_generate(h, op_tag->c_tag, _i, NULL) ) return h->errcode;
+        if ( !hcml_append_code_format(h, " %s ", op) ) return h->errcode;
+    }
+    return __break_sibling_and_generate(h, op_tag->c_tag, _i, NULL);
+}
+
 /* Generate Keyword tag */
 int __generate_cxx_keyword( hcml_node_t *h, const char *keyword ) {
     hcml_append_code_format(h, "%s ", keyword);
@@ -313,15 +330,15 @@ int hcml_generate_cxx_lang( hcml_node_t *h, struct hcml_tag_t *root_tag, const c
             } else if ( __cxx_is_tag(root_tag, "notequal") ) {
                 if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, "!=") ) break;
             } else if ( __cxx_is_tag(root_tag, "plus") ) {
-                if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, "+") ) break;
+                if ( HCML_ERR_OK != __generate_cxx_self_return_operator(h, root_tag, "+") ) break;
             } else if ( __cxx_is_tag(root_tag, "minus") ) {
-                if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, "-") ) break;
+                if ( HCML_ERR_OK != __generate_cxx_self_return_operator(h, root_tag, "-") ) break;
             } else if ( __cxx_is_tag(root_tag, "times") ) {
-                if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, "*") ) break;
+                if ( HCML_ERR_OK != __generate_cxx_self_return_operator(h, root_tag, "*") ) break;
             } else if ( __cxx_is_tag(root_tag, "divid") ) {
-                if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, "/") ) break;
+                if ( HCML_ERR_OK != __generate_cxx_self_return_operator(h, root_tag, "/") ) break;
             } else if ( __cxx_is_tag(root_tag, "mod") ) {
-                if ( HCML_ERR_OK != __generate_cxx_binary_operator(h, root_tag, "%") ) break;
+                if ( HCML_ERR_OK != __generate_cxx_self_return_operator(h, root_tag, "%") ) break;
             } else if ( __cxx_is_tag(root_tag, "return") ) {
                 if ( HCML_ERR_OK != __generate_cxx_keyword(h, "return") ) break;
             } else if ( __cxx_is_tag(root_tag, "break") ) {
